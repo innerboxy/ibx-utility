@@ -1,6 +1,7 @@
 package ibx.taverntales.forging;
 
 import ibx.taverntales.forging.client.screen.EquipmentForgeScreen;
+import ibx.taverntales.forging.client.screen.FletchingScreen;
 import ibx.taverntales.forging.registry.ModMenus;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -15,5 +16,6 @@ public class TavernTalesEquipmentForgeClient {
     @SubscribeEvent
     static void registerScreens(RegisterMenuScreensEvent event) {
         event.register(ModMenus.EQUIPMENT_FORGE.get(), EquipmentForgeScreen::new);
+        event.register(ModMenus.FLETCHING_TABLE.get(), FletchingScreen::new);
     }
 }

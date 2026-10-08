@@ -18,9 +18,17 @@ public final class ConfigCondition implements ICondition {
     public static final ConfigCondition VANILLA_RECIPE_ENABLED = new ConfigCondition(
             "vanilla_recipe_enabled", () -> !Config.REMOVE_VANILLA_RECIPES.getAsBoolean());
 
+    /** 同上,对应独立的开关"移除被制箭台取代的原版配方",覆盖原版的箭、药箭、光灵箭配方文件 */
+    public static final ConfigCondition VANILLA_ARROW_RECIPE_ENABLED = new ConfigCondition(
+            "vanilla_arrow_recipe_enabled", () -> !Config.REMOVE_VANILLA_ARROW_RECIPES.getAsBoolean());
+
     /** 仅当配置"启用默认锻造配方"为开启时加载。挂在模组自带的锻造配方上,供整合包一键停用默认配方表 */
     public static final ConfigCondition DEFAULT_RECIPES_ENABLED = new ConfigCondition(
             "default_recipes_enabled", Config.ENABLE_DEFAULT_RECIPES::getAsBoolean);
+
+    /** 仅当配置"启用默认制箭配方"为开启时加载。挂在模组自带的制箭配方上,与锻造配方分开控制 */
+    public static final ConfigCondition DEFAULT_FLETCHING_RECIPES_ENABLED = new ConfigCondition(
+            "default_fletching_recipes_enabled", Config.ENABLE_DEFAULT_FLETCHING_RECIPES::getAsBoolean);
 
     /** 仅当配置"启用默认分类标签"为开启时加载。挂在模组自带的分类定义上(数据包注册表条目同样支持条件) */
     public static final ConfigCondition DEFAULT_CATEGORIES_ENABLED = new ConfigCondition(

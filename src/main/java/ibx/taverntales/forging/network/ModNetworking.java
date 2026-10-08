@@ -26,12 +26,12 @@ public class ModNetworking {
     }
 
     /**
-     * 服务端:登录与 /reload 时把锻造配方和袋子表发给玩家(数据包驱动,故不能在启动时算一次了事)。
+     * 服务端:登录与 /reload 时把锻造配方、制箭配方和袋子表发给玩家(数据包驱动,故不能在启动时算一次了事)。
      * 挂 OnDatapackSyncEvent 而非登录事件,是为了让 /reload 后界面和 JEI 里的展示也跟着更新。
      * 客户端在 RecipesReceivedEvent 里接收(见 ClientForgeRecipes)。
      */
     public static void onDatapackSync(final OnDatapackSyncEvent event) {
-        event.sendRecipes(ModRecipes.EQUIPMENT_FORGE_TYPE.get());
+        event.sendRecipes(ModRecipes.EQUIPMENT_FORGE_TYPE.get(), ModRecipes.FLETCHING_TYPE.get());
         var payload = new LootBagSyncPayload(LootBagTables.collect(event.getPlayerList().getServer()));
         // 登录时只含刚登录的那位,/reload 时是所有人
         event.getRelevantPlayers().forEach(p -> PacketDistributor.sendToPlayer(p, payload));

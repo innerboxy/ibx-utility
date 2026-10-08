@@ -16,8 +16,14 @@ public class ModConditions {
     public static final DeferredHolder<MapCodec<? extends ICondition>, MapCodec<ConfigCondition>> VANILLA_RECIPE_ENABLED =
             register(ConfigCondition.VANILLA_RECIPE_ENABLED);
 
+    public static final DeferredHolder<MapCodec<? extends ICondition>, MapCodec<ConfigCondition>> VANILLA_ARROW_RECIPE_ENABLED =
+            register(ConfigCondition.VANILLA_ARROW_RECIPE_ENABLED);
+
     public static final DeferredHolder<MapCodec<? extends ICondition>, MapCodec<ConfigCondition>> DEFAULT_RECIPES_ENABLED =
             register(ConfigCondition.DEFAULT_RECIPES_ENABLED);
+
+    public static final DeferredHolder<MapCodec<? extends ICondition>, MapCodec<ConfigCondition>> DEFAULT_FLETCHING_RECIPES_ENABLED =
+            register(ConfigCondition.DEFAULT_FLETCHING_RECIPES_ENABLED);
 
     public static final DeferredHolder<MapCodec<? extends ICondition>, MapCodec<ConfigCondition>> DEFAULT_CATEGORIES_ENABLED =
             register(ConfigCondition.DEFAULT_CATEGORIES_ENABLED);

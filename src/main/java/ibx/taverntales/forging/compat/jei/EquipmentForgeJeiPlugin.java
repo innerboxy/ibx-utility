@@ -7,9 +7,13 @@ import ibx.taverntales.forging.client.CreativeOrder;
 import ibx.taverntales.forging.client.screen.EquipmentForgeScreen;
 import ibx.taverntales.forging.compat.jer.JustEnoughResourcesCompat;
 import ibx.taverntales.forging.lootbag.LootBagDrop;
+import ibx.taverntales.forging.menu.FletchingMenu;
 import ibx.taverntales.forging.recipe.EquipmentForgeRecipe;
+import ibx.taverntales.forging.recipe.FletchingRecipe;
+import ibx.taverntales.forging.recipe.FletchingRecipes;
 import ibx.taverntales.forging.registry.ModDataComponents;
 import ibx.taverntales.forging.registry.ModItems;
+import ibx.taverntales.forging.registry.ModMenus;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.gui.handlers.IGuiContainerHandler;
@@ -25,6 +29,7 @@ import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.storage.loot.LootTable;
 
@@ -39,6 +44,9 @@ public class EquipmentForgeJeiPlugin implements IModPlugin {
     public static final IRecipeHolderType<EquipmentForgeRecipe> EQUIPMENT_FORGE =
             IRecipeHolderType.create(Identifier.fromNamespaceAndPath(TavernTalesEquipmentForge.MODID, "equipment_forge"));
 
+    public static final IRecipeHolderType<FletchingRecipe> FLETCHING =
+            IRecipeHolderType.create(Identifier.fromNamespaceAndPath(TavernTalesEquipmentForge.MODID, "fletching"));
+
     public static final IRecipeType<LootBagDisplay> LOOT_BAG =
             IRecipeType.create(TavernTalesEquipmentForge.MODID, "loot_bag", LootBagDisplay.class);
 
@@ -51,6 +59,7 @@ public class EquipmentForgeJeiPlugin implements IModPlugin {
     public void registerCategories(IRecipeCategoryRegistration registration) {
         registration.addRecipeCategories(new EquipmentForgeRecipeCategory(
                 registration.getJeiHelpers().getGuiHelper(), maxMaterialCount()));
+        registration.addRecipeCategories(new FletchingRecipeCategory(registration.getJeiHelpers().getGuiHelper()));
 
         // 没有 JER 就没人能解析战利品表,整个分类不注册(而不是注册一个永远空着的分类)
         if (JustEnoughResourcesCompat.isLoaded()) {
@@ -112,6 +121,7 @@ public class EquipmentForgeJeiPlugin implements IModPlugin {
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
         registration.addRecipes(EQUIPMENT_FORGE, loadedRecipes());
+        registration.addRecipes(FLETCHING, FletchingRecipes.synced());
         if (JustEnoughResourcesCompat.isLoaded()) {
             registration.addRecipes(LOOT_BAG, lootBagDisplays());
         }
@@ -131,6 +141,7 @@ public class EquipmentForgeJeiPlugin implements IModPlugin {
     @Override
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
         registration.addCraftingStation(EQUIPMENT_FORGE, ModItems.EQUIPMENT_FORGE.get());
+        registration.addCraftingStation(FLETCHING, Items.FLETCHING_TABLE);
         if (JustEnoughResourcesCompat.isLoaded()) {
             // 空袋作为触媒:在 JEI 里查战利品袋这个物品,就能看到所有袋子的掉落
             registration.addCraftingStation(LOOT_BAG, ModItems.LOOT_BAG.get());
@@ -141,6 +152,9 @@ public class EquipmentForgeJeiPlugin implements IModPlugin {
     public void registerRecipeTransferHandlers(IRecipeTransferRegistration registration) {
         // 「+」按钮:在打开的锻造台里选中该配方(不移动物品,材料取自背包/网络)
         registration.addRecipeTransferHandler(new EquipmentForgeTransferHandler(), EQUIPMENT_FORGE);
+        // 制箭台「+」:JEI 标准转移,把背包里的材料填进 4 个输入格(菜单槽位 0-3;5 起为背包与快捷栏共 36 格)
+        registration.addRecipeTransferHandler(FletchingMenu.class, ModMenus.FLETCHING_TABLE.get(), FLETCHING,
+                FletchingMenu.TAIL_SLOT, FletchingMenu.INPUT_COUNT, FletchingMenu.RESULT_SLOT + 1, 36);
     }
 
     @Override

@@ -32,6 +32,19 @@ The mod also provides a standalone item — the **Loot Bag** (`taverntales_4ging
 - **View drops in JEI**: with JER installed, you can see each bag's possible drops and probabilities (see [4.6](#46-viewing-drops-in-jei)).
 - No crafting recipe. An **empty bag** is available at the very front of the "Ingredients" creative tab; **specific kinds** can only be granted via `/give`, commands, or loot tables (kinds are defined by data packs, are open-ended in count, and are not enumerated in the creative tab).
 
+### Fletching Table
+
+Right-clicking the **vanilla fletching table** opens a fletching UI. The block itself is unchanged, and fletcher villagers still use it as their workstation.
+
+- Tail, shaft, tip and potion slots sit in one row; once filled, the result appears on the right. Each craft consumes 1 item from each slot, and shift-clicking the result crafts until the materials run out.
+- Each slot only accepts materials that some recipe uses in that position, so shift-clicking from the inventory sends items to the right slot; empty slots show an outline hint of what goes there.
+- Recipes are data-driven (see [3.4](#34-fletching-recipes)). Three are built in, all starting from feather + stick + flint and yielding 8 per craft:
+  - potion slot empty → arrows;
+  - a **lingering potion** in the potion slot → tipped arrows with that potion's effect (the potion is used up; no empty bottle is returned);
+  - **glowstone dust** in the potion slot → spectral arrows.
+- Whether the vanilla crafting-table recipes for arrows, tipped arrows and spectral arrows are removed is controlled by a separate switch, `removeVanillaArrowRecipes` (see [2](#2-configuration)).
+- With JEI installed there is a "Fletching Table" category; open a JEI recipe page from the fletching UI and click the "+" to the right of the result to fill the slots from your inventory.
+
 ### How to obtain
 
 The Equipment Forge is crafted in the **vanilla crafting table**:
@@ -48,7 +61,7 @@ Au    Au          CT = Crafting Table
 | --- | --- | --- |
 | NeoForge `21.1.234+` | **Required** | — |
 | Minecraft `1.21.1` | **Required** | — |
-| [JEI](https://www.curseforge.com/minecraft/mc-mods/jei) `19+` | Optional (client) | Adds an "Equipment Forge" recipe-lookup category; clicking JEI's "+" in the forge UI jumps straight to that recipe with it selected |
+| [JEI](https://www.curseforge.com/minecraft/mc-mods/jei) `19+` | Optional (client) | Adds "Equipment Forge" and "Fletching Table" recipe-lookup categories; clicking JEI's "+" in the forge UI jumps straight to that recipe with it selected, and in the fletching UI it fills in the materials |
 | [JustEnoughResources](https://modrinth.com/mod/just-enough-resources-jer) `1.6+` (JER) | Optional (client) | Adds a "Loot Bag" category showing each bag's possible drops and probabilities (see [4.6](#46-viewing-drops-in-jei)). Requires JEI as well |
 | [Beyond Dimensions](https://modrinth.com/mod/beyonddimensions) `0.7+` | Optional | When forging, items stored in the player's **main network** can be consumed directly; the UI's craftable check and material counting include them too |
 
@@ -61,19 +74,25 @@ The config type is **COMMON**, located at `config/taverntales_4ging-common.toml`
 ```toml
 #Remove vanilla crafting-table recipes superseded by the Equipment Forge, so those items can only be made at the forge.
 removeVanillaRecipes = true
+#Remove the vanilla crafting-table recipes for arrows, tipped arrows and spectral arrows, which are replaced by the fletching table.
+removeVanillaArrowRecipes = true
 #Load the mod's built-in default category tabs (melee/ranged/magic/tool/armor/shield/curio).
 enableDefaultCategories = true
 #Load the mod's built-in default forge recipes (wood/stone/copper/iron/gold/diamond/netherite gear, spears, bow & crossbow, shield, etc.).
 enableDefaultRecipes = true
+#Load the mod's built-in fletching recipes (arrow, tipped arrow, spectral arrow). Disable to define fletching recipes entirely via datapack.
+enableDefaultFletchingRecipes = true
 ```
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
 | `removeVanillaRecipes` | boolean | `true` | Whether to remove the vanilla recipes superseded by the forge. One switch controls them all. |
+| `removeVanillaArrowRecipes` | boolean | `true` | Whether to remove the vanilla recipes superseded by the fletching table (arrows, tipped arrows, spectral arrows). Independent of the option above. |
 | `enableDefaultCategories` | boolean | `true` | Whether to load the mod's 7 built-in default category tabs. Turn off to define categories entirely via data pack. |
 | `enableDefaultRecipes` | boolean | `true` | Whether to load the mod's built-in default forge recipes. Turn off to define the whole recipe set via data pack. |
+| `enableDefaultFletchingRecipes` | boolean | `true` | Whether to load the mod's built-in fletching recipes. Turn off to define fletching recipes entirely via data pack. Independent of the option above. |
 
-**What the three have in common:**
+**What the five have in common:**
 
 - They all take effect **server-side only**. They act during the data-pack loading phase (server), and the result is then synced to clients.
   - Singleplayer: the local config file takes effect (the singleplayer client ships an integrated server).
@@ -84,6 +103,12 @@ enableDefaultRecipes = true
 
 - When enabled, the following vanilla recipes are removed: the tools, swords & spears of every tier (wood/stone/copper/iron/gold/diamond), shield, bow, crossbow, mace, leather/copper/iron/gold/diamond armor sets, turtle shell, and the **smithing upgrade recipes for netherite gear (including the netherite spear)**.
 - When disabled, all of the above vanilla recipes are restored, and the forge recipes still work (i.e. both paths coexist).
+
+**`removeVanillaArrowRecipes`**
+
+- When enabled, the vanilla crafting-table recipes for **arrows, tipped arrows and spectral arrows** are removed, so these can only be made at the fletching table.
+- When disabled, the vanilla recipes are restored, and the fletching recipes still work.
+- Independent of `removeVanillaRecipes`, so you can remove just one group.
 
 **`enableDefaultCategories`**
 
@@ -96,11 +121,17 @@ enableDefaultRecipes = true
 - **Does not affect the Equipment Forge block's own crafting recipe** (the block is always craftable).
 - Also does not affect `removeVanillaRecipes` — to restore vanilla recipes at the same time, turn that off separately.
 
+**`enableDefaultFletchingRecipes`**
+
+- When disabled, the mod's 3 built-in fletching recipes (arrow, tipped arrow, spectral arrow) are no longer loaded, and fletching recipes can be defined by the data pack.
+- Independent of `enableDefaultRecipes`.
+- Also does not affect `removeVanillaArrowRecipes` — if you remove the vanilla arrow recipes and also disable the default fletching recipes, add fletching recipes via data pack, or there will be no way to make arrows at all.
+
 ---
 
 ## 3. Data formats
 
-The mod involves three kinds of data files, which modpacks can override or add to directly via data pack.
+The mod involves four kinds of data files, which modpacks can override or add to directly via data pack.
 
 ### 3.1 Forge recipes
 
@@ -168,12 +199,14 @@ Built-in categories:
 
 ### 3.3 Data-pack conditions
 
-The mod registers three data-pack conditions, one per config option. NeoForge's rule is "the data loads only when the condition is `true`", so the condition names all describe the **"loaded"** side of the state:
+The mod registers five data-pack conditions, one per config option. NeoForge's rule is "the data loads only when the condition is `true`", so the condition names all describe the **"loaded"** side of the state:
 
 | Condition id | When it returns `true` | Used on |
 | --- | --- | --- |
-| `taverntales_4ging:vanilla_recipe_enabled` | When `removeVanillaRecipes = false` | The mod's override files for vanilla recipes |
+| `taverntales_4ging:vanilla_recipe_enabled` | When `removeVanillaRecipes = false` | The mod's override files for vanilla recipes superseded by the forge |
+| `taverntales_4ging:vanilla_arrow_recipe_enabled` | When `removeVanillaArrowRecipes = false` | The mod's override files for the vanilla arrow, tipped arrow and spectral arrow recipes |
 | `taverntales_4ging:default_recipes_enabled` | When `enableDefaultRecipes = true` | The mod's 77 built-in forge recipes |
+| `taverntales_4ging:default_fletching_recipes_enabled` | When `enableDefaultFletchingRecipes = true` | The mod's 3 built-in fletching recipes |
 | `taverntales_4ging:default_categories_enabled` | When `enableDefaultCategories = true` | The mod's 7 built-in category definitions |
 
 > Conditions aren't limited to recipes — NeoForge wires condition parsing into data-pack registries too, so category definitions (3.2) also support `neoforge:conditions`.
@@ -204,6 +237,46 @@ Placing this at `data/minecraft/recipe/wooden_sword.json` overrides the vanilla 
 
 > When adding a forge recipe, if you also want to remove the corresponding vanilla recipe, override one this way to reuse the same config switch.
 > The original vanilla recipe text can be extracted from `data/minecraft/recipe/`: the ones NeoForge rewrites (e.g. sticks replaced with `#c:rods/wooden`) live in `neoforge-<version>-universal.jar`, the rest in the Minecraft jar. When overriding, use NeoForge's rewritten version.
+
+### 3.4 Fletching recipes
+
+- **Location**: `data/<namespace>/recipe/**/*.json` (this mod puts them under `recipe/fletching/`)
+- **Type**: `taverntales_4ging:fletching`
+
+```json
+{
+  "type": "taverntales_4ging:fletching",
+  "tail": "minecraft:feather",
+  "shaft": "#c:rods/wooden",
+  "tip": "minecraft:flint",
+  "result": { "id": "minecraft:arrow", "count": 8 }
+}
+```
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `tail` | Yes | Material for the tail slot, in vanilla ingredient form: an item id, a `#`-prefixed tag, or an array of them. |
+| `shaft` | Yes | Material for the shaft slot, same form. |
+| `tip` | Yes | Material for the tip slot, same form. |
+| `additive` | No | Material for the potion slot, same form. If omitted, the potion slot must be empty to craft. |
+| `copy_potion` | No | Defaults to `false`. When `true`, the potion effect of the item in the potion slot is copied onto the product (like the vanilla tipped-arrow recipe, `crafting_imbue`). |
+| `result` | Yes | The product, `{ "id": <item id>, "count": <count> }`. |
+
+Tipped arrows are written like this (this is the built-in recipe):
+
+```json
+{
+  "type": "taverntales_4ging:fletching",
+  "tail": "minecraft:feather",
+  "shaft": "#c:rods/wooden",
+  "tip": "minecraft:flint",
+  "additive": "minecraft:lingering_potion",
+  "copy_potion": true,
+  "result": { "id": "minecraft:tipped_arrow", "count": 8 }
+}
+```
+
+> Each craft consumes 1 item from each slot (a potion is used up entirely; no empty bottle is returned). Each slot only accepts materials that **some recipe uses in that position**, so adding a new material only takes a recipe — no extra tag needed.
 
 ---
 

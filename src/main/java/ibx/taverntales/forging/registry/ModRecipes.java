@@ -1,6 +1,7 @@
 package ibx.taverntales.forging.registry;
 
 import ibx.taverntales.forging.recipe.EquipmentForgeRecipe;
+import ibx.taverntales.forging.recipe.FletchingRecipe;
 import ibx.taverntales.forging.TavernTalesEquipmentForge;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
@@ -21,4 +22,11 @@ public class ModRecipes {
 
     public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<EquipmentForgeRecipe>> EQUIPMENT_FORGE_SERIALIZER =
             RECIPE_SERIALIZERS.register("equipment_forge", () -> EquipmentForgeRecipe.SERIALIZER);
+
+    public static final DeferredHolder<RecipeType<?>, RecipeType<FletchingRecipe>> FLETCHING_TYPE =
+            RECIPE_TYPES.register("fletching",
+                    () -> RecipeType.simple(Identifier.fromNamespaceAndPath(TavernTalesEquipmentForge.MODID, "fletching")));
+
+    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<FletchingRecipe>> FLETCHING_SERIALIZER =
+            RECIPE_SERIALIZERS.register("fletching", () -> FletchingRecipe.SERIALIZER);
 }

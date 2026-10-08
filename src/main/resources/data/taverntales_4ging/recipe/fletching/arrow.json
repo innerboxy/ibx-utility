@@ -1,0 +1,15 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "taverntales_4ging:default_fletching_recipes_enabled"
+    }
+  ],
+  "type": "taverntales_4ging:fletching",
+  "tail": "minecraft:feather",
+  "shaft": "#c:rods/wooden",
+  "tip": "minecraft:flint",
+  "result": {
+    "id": "minecraft:arrow",
+    "count": 8
+  }
+}
