@@ -13,12 +13,15 @@ import java.util.List;
 
 /**
  * 制箭台界面:原版风格的灰色面板,四格一排 → 箭头 → 26x26 成品大格。
- * 槽位框、箭头、大格都烘焙在 fletching_table.png 里;空槽的线稿底纹由 {@link CyclingSlotBackground} 绘制,
- * 与原版锻造台空槽图标同一套机制(药水格在水瓶与火药之间轮换)。
+ * 槽位框、箭头、大格,以及装饰(左上角的箭图标、四格外的砂轮式凸起边框)都烘焙在 fletching_table.png 里;
+ * 空槽的线稿底纹由 {@link CyclingSlotBackground} 绘制,与原版锻造台空槽图标同一套机制(药水格在水瓶与火药之间轮换)。
  */
 public class FletchingScreen extends ItemCombinerScreen<FletchingMenu> {
     private static final Identifier BACKGROUND = Identifier.fromNamespaceAndPath(
             TavernTalesEquipmentForge.MODID, "textures/gui/fletching_table.png");
+    /** 标题放在左上角箭图标的右侧(图标占 8..37),位置同原版锻造台 */
+    private static final int TITLE_X = 44;
+    private static final int TITLE_Y = 15;
 
     private static final List<Identifier> TAIL_ICONS = List.of(sprite("feather"));
     private static final List<Identifier> SHAFT_ICONS = List.of(sprite("stick"));
@@ -35,6 +38,8 @@ public class FletchingScreen extends ItemCombinerScreen<FletchingMenu> {
 
     public FletchingScreen(FletchingMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title, BACKGROUND);
+        this.titleLabelX = TITLE_X;
+        this.titleLabelY = TITLE_Y;
     }
 
     private static Identifier sprite(String name) {

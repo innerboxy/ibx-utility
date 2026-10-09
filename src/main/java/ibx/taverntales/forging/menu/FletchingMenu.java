@@ -38,10 +38,13 @@ public class FletchingMenu extends ItemCombinerMenu {
     public static final int RESULT_SLOT = 4;
     public static final int INPUT_COUNT = 4;
 
-    /** 四个输入格的物品坐标(间距 22,即格子之间留 4px),Screen 底图需与此一致 */
+    /**
+     * 四个输入格的物品坐标(间距 22,即格子之间留 4px),Screen 底图需与此一致。
+     * 整行放在面板下半部,上方留给左上角的箭图标与标题(同原版锻造台/铁砧的排法)
+     */
     public static final int INPUT_X = 15;
     public static final int INPUT_STEP = 22;
-    public static final int SLOT_Y = 35;
+    public static final int SLOT_Y = 44;
     /** 成品格在 26x26 大格正中,物品坐标比大格左上角各缩进 5px */
     public static final int RESULT_X = 141;
 
