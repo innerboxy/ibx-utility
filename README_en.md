@@ -163,9 +163,9 @@ The mod involves four kinds of data files, which modpacks can override or add to
 
 The left-hand category tabs are driven by a data-pack registry.
 
-- **Registry**: `minecraft:category`
-- **Location**: `data/<namespace>/category/*.json`
-- **Category id**: the file's ResourceLocation. For example `data/ibx_utility/category/melee.json` → `ibx_utility:melee`, and recipes are grouped by this id.
+- **Registry**: `minecraft:category/equipment_forge`
+- **Location**: `data/<namespace>/category/equipment_forge/*.json`
+- **Category id**: the file's ResourceLocation. For example `data/ibx_utility/category/equipment_forge/melee.json` → `ibx_utility:melee`, and recipes are grouped by this id.
 
 ```json
 {

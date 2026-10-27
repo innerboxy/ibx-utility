@@ -57,14 +57,17 @@ public class IbxUtility {
 
     //创造物品栏位:功能方块分类,同时兼容服务器整合包的 kubejs 专属分类
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
-        // 装备锻造台紧挨在铁砧前面;铁砧若被整合包从该分类移除(insertBefore 找不到目标会抛异常),退回到末尾追加
+        // 装备锻造台紧挨在铁砧前面、悬赏板跟在锻造台后面;铁砧若被整合包从该分类移除(insertBefore 找不到目标会抛异常),退回到末尾追加
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
             ItemStack forge = new ItemStack(ModItems.EQUIPMENT_FORGE.get());
+            ItemStack board = new ItemStack(ModItems.QUEST_BOARD.get());
             ItemStack anvil = new ItemStack(Items.ANVIL);
             if (event.getParentEntries().contains(anvil) && event.getSearchEntries().contains(anvil)) {
                 event.insertBefore(anvil, forge, TabVisibility.PARENT_AND_SEARCH_TABS);
+                event.insertAfter(forge, board, TabVisibility.PARENT_AND_SEARCH_TABS);
             } else {
                 event.accept(forge);
+                event.accept(board);
             }
         }
         // 战利品袋放原材料栏最前面。这里给的是空袋(不带 loot_bag_type 组件)——袋子种类由数据包定义,

@@ -1,5 +1,6 @@
 {
   "block.ibx_utility.equipment_forge": "装備鍛冶台",
+  "block.ibx_utility.quest_board": "依頼掲示板",
   "item.ibx_utility.loot_bag": "戦利品袋",
   "loot_bag.ibx_utility.null": "空",
   "gui.ibx_utility.craft": "鍛造",

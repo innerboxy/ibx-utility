@@ -165,9 +165,9 @@ enableDefaultFletchingRecipes = true
 
 左侧分类标签由数据包注册表驱动。
 
-- **注册表**:`minecraft:category`
-- **位置**:`data/<命名空间>/category/*.json`
-- **分类 id**:即该文件的 ResourceLocation。例如 `data/ibx_utility/category/melee.json` → `ibx_utility:melee`,配方通过这个 id 归类。
+- **注册表**:`minecraft:category/equipment_forge`
+- **位置**:`data/<命名空间>/category/equipment_forge/*.json`
+- **分类 id**:即该文件的 ResourceLocation。例如 `data/ibx_utility/category/equipment_forge/melee.json` → `ibx_utility:melee`,配方通过这个 id 归类。
 
 ```json
 {

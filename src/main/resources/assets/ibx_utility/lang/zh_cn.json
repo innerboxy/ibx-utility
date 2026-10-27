@@ -1,5 +1,6 @@
 {
   "block.ibx_utility.equipment_forge": "装备锻造台",
+  "block.ibx_utility.quest_board": "悬赏板",
   "item.ibx_utility.loot_bag": "战利品袋",
   "loot_bag.ibx_utility.null": "空",
   "gui.ibx_utility.craft": "制作",

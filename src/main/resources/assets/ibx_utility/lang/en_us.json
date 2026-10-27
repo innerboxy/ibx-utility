@@ -1,5 +1,6 @@
 {
   "block.ibx_utility.equipment_forge": "Equipment Forge",
+  "block.ibx_utility.quest_board": "Quest Board",
   "item.ibx_utility.loot_bag": "Loot Bag",
   "loot_bag.ibx_utility.null": "Empty",
   "gui.ibx_utility.craft": "Craft",

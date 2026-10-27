@@ -14,6 +14,10 @@ public class ModItems {
     public static final DeferredItem<BlockItem> EQUIPMENT_FORGE =
             ITEMS.registerSimpleBlockItem("equipment_forge", ModBlocks.EQUIPMENT_FORGE);
 
+    //悬赏板
+    public static final DeferredItem<BlockItem> QUEST_BOARD =
+            ITEMS.registerSimpleBlockItem("quest_board", ModBlocks.QUEST_BOARD);
+
     //战利品袋:史诗品质,掉落物形态不会被岩浆/火烧毁,也不会被爆炸炸掉(后者见 LootBagItem#canBeHurtBy)
     public static final DeferredItem<LootBagItem> LOOT_BAG =
             ITEMS.registerItem("loot_bag", LootBagItem::new, properties -> properties

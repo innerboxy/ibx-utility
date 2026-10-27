@@ -11,11 +11,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 /**
- * 数据驱动的装备分类定义,存于数据包注册表 {@code minecraft:category}(见 ModRegistries)。
+ * 数据驱动的装备分类定义,存于数据包注册表 {@code minecraft:category/equipment_forge}(见 ModRegistries)。
  * 分类 id 即其文件的 Identifier(配方通过该 id 归类);此对象只描述展示信息。
  *
  * <pre>
- * data/&lt;命名空间&gt;/category/melee.json
+ * data/&lt;命名空间&gt;/category/equipment_forge/melee.json
  * {
  *   "name": { "translate": "category.ibx_utility.melee" },
  *   "order": 0,                          // 可选,默认 0

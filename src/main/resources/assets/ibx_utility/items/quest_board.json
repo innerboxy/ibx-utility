@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "ibx_utility:block/quest_board"
+  }
+}
