@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "ibx_utility:block/equipment_forge" },
+    "facing=east":  { "model": "ibx_utility:block/equipment_forge", "y": 90 },
+    "facing=south": { "model": "ibx_utility:block/equipment_forge", "y": 180 },
+    "facing=west":  { "model": "ibx_utility:block/equipment_forge", "y": 270 }
+  }
+}

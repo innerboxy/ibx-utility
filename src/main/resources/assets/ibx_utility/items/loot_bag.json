@@ -1,0 +1,9 @@
+{
+  "model": {
+    "type": "ibx_utility:loot_bag",
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "ibx_utility:item/loot_bag"
+    }
+  }
+}

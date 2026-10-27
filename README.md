@@ -1,4 +1,4 @@
-# taverntales_4ging
+# IBX-Utility
 
 **简体中文** | [English](README_en.md)
 
@@ -8,7 +8,7 @@ Minecraft **1.21.1** / **NeoForge** 模组,为 TavernTales 提供一个数据驱
 
 ## 1. 简介
 
-本模组添加**装备锻造台**(`taverntales_4ging:equipment_forge`)——一个以"选中配方即可制作"为核心的合成方块,用来取代原版工作台里繁琐的装备摆放。
+本模组添加**装备锻造台**(`ibx_utility:equipment_forge`)——一个以"选中配方即可制作"为核心的合成方块,用来取代原版工作台里繁琐的装备摆放。
 
 ### 核心特点
 
@@ -24,7 +24,7 @@ Minecraft **1.21.1** / **NeoForge** 模组,为 TavernTales 提供一个数据驱
 
 ### 战利品袋
 
-模组另外提供一个独立物品——**战利品袋**(`taverntales_4ging:loot_bag`),右键即开,内容完全由数据包的战利品表定义(见 [4](#4-战利品袋))。
+模组另外提供一个独立物品——**战利品袋**(`ibx_utility:loot_bag`),右键即开,内容完全由数据包的战利品表定义(见 [4](#4-战利品袋))。
 
 - **一袋一表**:袋子的种类写在物品组件里,对应一张同名的战利品表,可以给每个 Boss 配一个专属袋子。
 - **掉落物形态受保护**:免疫火焰/岩浆/爆炸,永不消失,并常亮发光轮廓(隔墙可见),适合直接扔在战场上。
@@ -71,7 +71,7 @@ Minecraft **1.21.1** / **NeoForge** 模组,为 TavernTales 提供一个数据驱
 
 ## 2. 配置
 
-配置类型为 **COMMON**,文件位于 `config/taverntales_4ging-common.toml`。
+配置类型为 **COMMON**,文件位于 `config/ibx_utility-common.toml`。
 
 ```toml
 #移除被装备锻造台取代的原版工作台合成配方,使这些物品只能通过装备锻造台制作。
@@ -114,7 +114,7 @@ enableDefaultFletchingRecipes = true
 
 **`enableDefaultCategories`**
 
-- 关闭后,`taverntales_4ging:melee` 等 7 个内置分类不再加载,左侧只剩内置的「全部」标签,可由数据包自行定义分类。
+- 关闭后,`ibx_utility:melee` 等 7 个内置分类不再加载,左侧只剩内置的「全部」标签,可由数据包自行定义分类。
 - 注意:若同时保留了默认配方,那些配方引用的分类将不存在,于是**只会出现在「全部」标签中**。通常与 `enableDefaultRecipes = false` 搭配使用。
 
 **`enableDefaultRecipes`**
@@ -138,12 +138,12 @@ enableDefaultFletchingRecipes = true
 ### 3.1 锻造配方
 
 - **位置**:`data/<命名空间>/recipe/**/*.json`(可放在任意子目录;本模组放在 `recipe/equipment_forge/` 下)
-- **类型**:`taverntales_4ging:equipment_forge`
+- **类型**:`ibx_utility:equipment_forge`
 
 ```json
 {
-  "type": "taverntales_4ging:equipment_forge",
-  "category": "taverntales_4ging:melee",
+  "type": "ibx_utility:equipment_forge",
+  "category": "ibx_utility:melee",
   "materials": [
     { "ingredient": "#minecraft:planks", "count": 2 },
     { "ingredient": "minecraft:diamond", "count": 3 }
@@ -154,7 +154,7 @@ enableDefaultFletchingRecipes = true
 
 | 字段 | 必填 | 说明 |
 | --- | --- | --- |
-| `category` | 是 | 分类 id,**必须写完整命名空间**(如 `taverntales_4ging:melee`)。引用了未定义的分类时,该配方只会出现在「全部」标签中,并打印一条调试日志。 |
+| `category` | 是 | 分类 id,**必须写完整命名空间**(如 `ibx_utility:melee`)。引用了未定义的分类时,该配方只会出现在「全部」标签中,并打印一条调试日志。 |
 | `materials` | 是 | 材料列表,每项为 NeoForge 的 `{ "ingredient": <原版 ingredient>, "count": <数量> }`(`count` 默认 1)。`ingredient` 写物品 id(`"minecraft:diamond"`)、带 `#` 的标签(`"#minecraft:planks"`)或它们组成的数组。数量指**所需总数**,与摆放形状无关。<br>旧版的 `{ "item": <物品id> }` / `{ "tag": <标签id> }` 写法仍可读取,新数据包建议改用 `ingredient`。 |
 | `result` | 是 | 产物,`{ "id": <物品id>, "count": <数量> }`。 |
 
@@ -167,11 +167,11 @@ enableDefaultFletchingRecipes = true
 
 - **注册表**:`minecraft:category`
 - **位置**:`data/<命名空间>/category/*.json`
-- **分类 id**:即该文件的 ResourceLocation。例如 `data/taverntales_4ging/category/melee.json` → `taverntales_4ging:melee`,配方通过这个 id 归类。
+- **分类 id**:即该文件的 ResourceLocation。例如 `data/ibx_utility/category/melee.json` → `ibx_utility:melee`,配方通过这个 id 归类。
 
 ```json
 {
-  "name": { "translate": "category.taverntales_4ging.melee" },
+  "name": { "translate": "category.ibx_utility.melee" },
   "order": 0,
   "icon": "minecraft:iron_sword"
 }
@@ -191,13 +191,13 @@ enableDefaultFletchingRecipes = true
 
 | id | order | 图标   |
 | --- | --- |------|
-| `taverntales_4ging:melee` | 0 | 铁剑   |
-| `taverntales_4ging:ranged` | 1 | 弓    |
-| `taverntales_4ging:magic` | 2 | 知识之书 |
-| `taverntales_4ging:tool` | 3 | 钻石镐  |
-| `taverntales_4ging:armor` | 4 | 黄金胸甲 |
-| `taverntales_4ging:shield` | 5 | 盾牌   |
-| `taverntales_4ging:curio` | 6 | 鞘翅   |
+| `ibx_utility:melee` | 0 | 铁剑   |
+| `ibx_utility:ranged` | 1 | 弓    |
+| `ibx_utility:magic` | 2 | 知识之书 |
+| `ibx_utility:tool` | 3 | 钻石镐  |
+| `ibx_utility:armor` | 4 | 黄金胸甲 |
+| `ibx_utility:shield` | 5 | 盾牌   |
+| `ibx_utility:curio` | 6 | 鞘翅   |
 
 ### 3.3 数据包条件
 
@@ -205,11 +205,11 @@ enableDefaultFletchingRecipes = true
 
 | 条件 id | 返回 `true` 的时机 | 用在哪 |
 | --- | --- | --- |
-| `taverntales_4ging:vanilla_recipe_enabled` | `removeVanillaRecipes = false` 时 | 模组对被锻造台取代的原版配方的覆盖文件 |
-| `taverntales_4ging:vanilla_arrow_recipe_enabled` | `removeVanillaArrowRecipes = false` 时 | 模组对原版箭、药箭、光灵箭配方的覆盖文件 |
-| `taverntales_4ging:default_recipes_enabled` | `enableDefaultRecipes = true` 时 | 模组自带的 77 个锻造配方 |
-| `taverntales_4ging:default_fletching_recipes_enabled` | `enableDefaultFletchingRecipes = true` 时 | 模组自带的 3 个制箭配方 |
-| `taverntales_4ging:default_categories_enabled` | `enableDefaultCategories = true` 时 | 模组自带的 7 个分类定义 |
+| `ibx_utility:vanilla_recipe_enabled` | `removeVanillaRecipes = false` 时 | 模组对被锻造台取代的原版配方的覆盖文件 |
+| `ibx_utility:vanilla_arrow_recipe_enabled` | `removeVanillaArrowRecipes = false` 时 | 模组对原版箭、药箭、光灵箭配方的覆盖文件 |
+| `ibx_utility:default_recipes_enabled` | `enableDefaultRecipes = true` 时 | 模组自带的 77 个锻造配方 |
+| `ibx_utility:default_fletching_recipes_enabled` | `enableDefaultFletchingRecipes = true` 时 | 模组自带的 3 个制箭配方 |
+| `ibx_utility:default_categories_enabled` | `enableDefaultCategories = true` 时 | 模组自带的 7 个分类定义 |
 
 > 条件不仅能用在配方上——NeoForge 给数据包注册表也接上了条件解析,所以分类定义(3.2)同样支持 `neoforge:conditions`。
 
@@ -222,7 +222,7 @@ enableDefaultFletchingRecipes = true
 ```json
 {
   "neoforge:conditions": [
-    { "type": "taverntales_4ging:vanilla_recipe_enabled" }
+    { "type": "ibx_utility:vanilla_recipe_enabled" }
   ],
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
@@ -243,11 +243,11 @@ enableDefaultFletchingRecipes = true
 ### 3.4 制箭配方
 
 - **位置**:`data/<命名空间>/recipe/**/*.json`(本模组放在 `recipe/fletching/` 下)
-- **类型**:`taverntales_4ging:fletching`
+- **类型**:`ibx_utility:fletching`
 
 ```json
 {
-  "type": "taverntales_4ging:fletching",
+  "type": "ibx_utility:fletching",
   "tail": "minecraft:feather",
   "shaft": "#c:rods/wooden",
   "tip": "minecraft:flint",
@@ -268,7 +268,7 @@ enableDefaultFletchingRecipes = true
 
 ```json
 {
-  "type": "taverntales_4ging:fletching",
+  "type": "ibx_utility:fletching",
   "tail": "minecraft:feather",
   "shaft": "#c:rods/wooden",
   "tip": "minecraft:flint",
@@ -284,7 +284,7 @@ enableDefaultFletchingRecipes = true
 
 ## 4. 战利品袋
 
-战利品袋(`taverntales_4ging:loot_bag`)是一个"右键即开"的物品。它自己不含任何掉落内容——**袋子只是个指针**,指向一张原版战利品表,掉什么全由那张表说了算。
+战利品袋(`ibx_utility:loot_bag`)是一个"右键即开"的物品。它自己不含任何掉落内容——**袋子只是个指针**,指向一张原版战利品表,掉什么全由那张表说了算。
 
 ### 4.1 三个组成部分
 
@@ -292,24 +292,24 @@ enableDefaultFletchingRecipes = true
 
 | # | 东西 | 位置 | 例(铁傀儡袋) |
 | --- | --- | --- | --- |
-| 1 | **物品组件**,决定这是哪种袋子 | 物品自身 | `taverntales_4ging:loot_bag_type` = `"iron_golem"` |
-| 2 | **战利品表**,决定掉什么 | 数据包 | `data/taverntales_4ging/loot_table/loot_bag/iron_golem.json` |
-| 3 | **译文**,决定 tooltip 显示什么名字、什么颜色 | 资源包/模组语言文件 | `loot_bag.taverntales_4ging.iron_golem` = `"§f铁傀儡"` |
+| 1 | **物品组件**,决定这是哪种袋子 | 物品自身 | `ibx_utility:loot_bag_type` = `"iron_golem"` |
+| 2 | **战利品表**,决定掉什么 | 数据包 | `data/ibx_utility/loot_table/loot_bag/iron_golem.json` |
+| 3 | **译文**,决定 tooltip 显示什么名字、什么颜色 | 资源包/模组语言文件 | `loot_bag.ibx_utility.iron_golem` = `"§f铁傀儡"` |
 
 三者靠组件里那个**裸字符串**串起来。组件值 `"iron_golem"` 会被**固定**拼成:
 
-- 战利品表 id → `taverntales_4ging:loot_bag/iron_golem`
-- 翻译键 → `loot_bag.taverntales_4ging.iron_golem`
+- 战利品表 id → `ibx_utility:loot_bag/iron_golem`
+- 翻译键 → `loot_bag.ibx_utility.iron_golem`
 
-> 组件值**不能带命名空间,也不能带目录**(不能写 `mypack:xxx` 或 `boss/xxx`)。所有袋子的表都必须放在 `taverntales_4ging` 命名空间的 `loot_bag/` 目录下——但**任何数据包都可以往这个路径里塞文件**,不需要是本模组的 jar。
+> 组件值**不能带命名空间,也不能带目录**(不能写 `mypack:xxx` 或 `boss/xxx`)。所有袋子的表都必须放在 `ibx_utility` 命名空间的 `loot_bag/` 目录下——但**任何数据包都可以往这个路径里塞文件**,不需要是本模组的 jar。
 
 ### 4.2 手把手:新建一个"末影龙袋"
 
-**第一步**,建表文件 `data/taverntales_4ging/loot_table/loot_bag/ender_dragon.json`:
+**第一步**,建表文件 `data/ibx_utility/loot_table/loot_bag/ender_dragon.json`:
 
 ```json
 {
-  "type": "taverntales_4ging:loot_bag",
+  "type": "ibx_utility:loot_bag",
   "pools": [
     {
       "rolls": 1,
@@ -325,14 +325,14 @@ enableDefaultFletchingRecipes = true
 
 ```json
 {
-  "loot_bag.taverntales_4ging.ender_dragon": "§5末影龙"
+  "loot_bag.ibx_utility.ender_dragon": "§5末影龙"
 }
 ```
 
 **第三步**,给予:
 
 ```
-/give @s taverntales_4ging:loot_bag[taverntales_4ging:loot_bag_type="ender_dragon"] 1
+/give @s ibx_utility:loot_bag[ibx_utility:loot_bag_type="ender_dragon"] 1
 ```
 
 改完数据包后 `/reload` 即可生效;新增译文需要重进世界或按 F3+T 重载资源。
@@ -341,7 +341,7 @@ enableDefaultFletchingRecipes = true
 
 | 组件 | 类型 | 说明 |
 | --- | --- | --- |
-| `taverntales_4ging:loot_bag_type` | 字符串 | 袋子种类。**这是袋子唯一的组件**。不写、写空串、或没有该组件 → 空袋:不可右键,tooltip 显示"空"。 |
+| `ibx_utility:loot_bag_type` | 字符串 | 袋子种类。**这是袋子唯一的组件**。不写、写空串、或没有该组件 → 空袋:不可右键,tooltip 显示"空"。 |
 
 **显示名与颜色一律来自语言文件**,没有任何自动推导:
 
@@ -350,7 +350,7 @@ enableDefaultFletchingRecipes = true
 
 > 因为颜色走 `§` 码,**只能用原版的 16 种颜色**,不支持 `#RRGGBB`。且每种语言的译文都要各自带上颜色码。
 >
-> "空"这个提示用的键是 `loot_bag.taverntales_4ging.null`——之所以不叫 `.empty`,是为了给一个名字真叫 `empty` 的袋子让路。
+> "空"这个提示用的键是 `loot_bag.ibx_utility.null`——之所以不叫 `.empty`,是为了给一个名字真叫 `empty` 的袋子让路。
 
 ### 4.4 掉落物形态的特性
 
@@ -373,13 +373,13 @@ enableDefaultFletchingRecipes = true
 assets/<命名空间>/models/item/loot_bag/<类型>.json
 ```
 
-例如给铁傀儡袋换皮,建 `assets/taverntales_4ging/models/item/loot_bag/iron_golem.json`:
+例如给铁傀儡袋换皮,建 `assets/ibx_utility/models/item/loot_bag/iron_golem.json`:
 
 ```json
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "taverntales_4ging:item/loot_bag/iron_golem"
+    "layer0": "ibx_utility:item/loot_bag/iron_golem"
   }
 }
 ```
@@ -424,16 +424,16 @@ assets/<命名空间>/models/item/loot_bag/<类型>.json
 
 ```json
 {
-  "type": "taverntales_4ging:loot_bag",
+  "type": "ibx_utility:loot_bag",
   "pools": [ ... ],
   "functions": [ ... ],
-  "random_sequence": "taverntales_4ging:loot_bag/iron_golem"
+  "random_sequence": "ibx_utility:loot_bag/iron_golem"
 }
 ```
 
 | 字段 | 必填 | 默认 | 说明 |
 | --- | --- | --- | --- |
-| `type` | 否 | `minecraft:generic` | 参数集。**袋子的表必须写 `taverntales_4ging:loot_bag`**,原因见 [5.7](#57-上下文参数与限制)。 |
+| `type` | 否 | `minecraft:generic` | 参数集。**袋子的表必须写 `ibx_utility:loot_bag`**,原因见 [5.7](#57-上下文参数与限制)。 |
 | `pools` | 否 | `[]` | 池列表。不写就是个空表(袋子能开,但什么都不给)。 |
 | `functions` | 否 | `[]` | **表级函数**,作用于本表掉出的**每一件**物品。 |
 | `random_sequence` | 否 | — | 随机序列 id,用于让掉落结果在同一存档内可复现。一般填表自己的 id 即可,不填也无妨。 |
@@ -584,7 +584,7 @@ pool[1]: rolls=1, entries=[虞美人(8), 铁块(1)] → 8/9 概率给虞美人, 
 
 这是袋子的表**唯一**区别于普通战利品表的地方,也是最需要注意的一节。
 
-战利品表运行时能读到的信息由**参数集**(即表的 `type` 字段)决定。箱子表能读到箱子位置,怪物掉落表能读到凶手是谁、用的什么武器。袋子是玩家右键打开的,所以模组注册了一个专属参数集 `taverntales_4ging:loot_bag`,它只提供两个参数:
+战利品表运行时能读到的信息由**参数集**(即表的 `type` 字段)决定。箱子表能读到箱子位置,怪物掉落表能读到凶手是谁、用的什么武器。袋子是玩家右键打开的,所以模组注册了一个专属参数集 `ibx_utility:loot_bag`,它只提供两个参数:
 
 | 参数 | 内容 |
 | --- | --- |
@@ -641,15 +641,15 @@ pool[1]: rolls=1, entries=[虞美人(8), 铁块(1)] → 8/9 概率给虞美人, 
 
 `minecraft:random_chance`、`minecraft:value_check`、`minecraft:time_check`、`minecraft:weather_check`、`minecraft:location_check`(检查开袋位置)、`minecraft:inverted`、`minecraft:any_of`、`minecraft:all_of`、`minecraft:reference`,以及 [5.6](#56-functions-给掉出来的东西加工) 表格里列出的全部函数。
 
-> ⚠️ **`type` 写错不会报错。** 如果把 `"type"` 拼成了 `taverntales_4ging:lootbag` 之类,原版**不会**报任何错,而是静默退回 `minecraft:generic` 参数集——那个集合声称"什么参数都有",于是上面的 WARN 也不会出现,袋子却可能在开的瞬间抛异常。**表不掉东西时,先检查 `type` 有没有拼对。**
+> ⚠️ **`type` 写错不会报错。** 如果把 `"type"` 拼成了 `ibx_utility:lootbag` 之类,原版**不会**报任何错,而是静默退回 `minecraft:generic` 参数集——那个集合声称"什么参数都有",于是上面的 WARN 也不会出现,袋子却可能在开的瞬间抛异常。**表不掉东西时,先检查 `type` 有没有拼对。**
 
 ### 5.8 完整示例:铁傀儡袋
 
-把前面几节拼起来,一个"铁傀儡袋"的完整表 `data/taverntales_4ging/loot_table/loot_bag/iron_golem.json` 长这样:
+把前面几节拼起来,一个"铁傀儡袋"的完整表 `data/ibx_utility/loot_table/loot_bag/iron_golem.json` 长这样:
 
 ```json
 {
-  "type": "taverntales_4ging:loot_bag",
+  "type": "ibx_utility:loot_bag",
   "pools": [
     {
       "rolls": 1,
@@ -700,18 +700,18 @@ pool[1]: rolls=1, entries=[虞美人(8), 铁块(1)] → 8/9 概率给虞美人, 
 配套的译文(`§f` = 白色):
 
 ```json
-"loot_bag.taverntales_4ging.iron_golem": "§f铁傀儡"
+"loot_bag.ibx_utility.iron_golem": "§f铁傀儡"
 ```
 
 给予指令:
 
 ```
-/give @s taverntales_4ging:loot_bag[taverntales_4ging:loot_bag_type="iron_golem"] 1
+/give @s ibx_utility:loot_bag[ibx_utility:loot_bag_type="iron_golem"] 1
 ```
 
 > 想在正式加袋子前先验证一张表掉什么,不必反复开袋——用原版命令直接掷它:
 > ```
-> /loot spawn ~ ~ ~ loot taverntales_4ging:loot_bag/iron_golem
+> /loot spawn ~ ~ ~ loot ibx_utility:loot_bag/iron_golem
 > ```
 
 > 上面的铁傀儡袋只是**文档示例**。**模组本体不带任何成品袋子**——袋子该有哪些、掉什么、长什么样,完全交给整合包决定。模组只提供物品、参数集与那份回退模型。

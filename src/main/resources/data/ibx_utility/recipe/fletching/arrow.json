@@ -1,0 +1,15 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "ibx_utility:default_fletching_recipes_enabled"
+    }
+  ],
+  "type": "ibx_utility:fletching",
+  "tail": "minecraft:feather",
+  "shaft": "#c:rods/wooden",
+  "tip": "minecraft:flint",
+  "result": {
+    "id": "minecraft:arrow",
+    "count": 8
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "ibx_utility:default_recipes_enabled"
+    }
+  ],
+  "type": "ibx_utility:equipment_forge",
+  "category": "ibx_utility:melee",
+  "materials": [
+    {
+      "ingredient": "minecraft:heavy_core",
+      "count": 1
+    },
+    {
+      "ingredient": "minecraft:breeze_rod",
+      "count": 1
+    },
+    {
+      "ingredient": "minecraft:iron_ingot",
+      "count": 2
+    }
+  ],
+  "result": {
+    "id": "minecraft:mace",
+    "count": 1
+  }
+}

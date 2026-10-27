@@ -9,7 +9,7 @@ version="${mod_version}" #mandatory
 displayName="${mod_name}" #mandatory
 authors="innerbox"
 description='''
-Equipment Forge: a data-driven crafting station for TavernTales.
+Utility blocks for Tavern Tales: equipment forge, loot bags and fletching table.
 '''
 
 [[dependencies."${mod_id}"]] #optional

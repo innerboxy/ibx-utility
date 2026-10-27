@@ -1,0 +1,12 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "ibx_utility:default_categories_enabled"
+    }
+  ],
+  "name": {
+    "translate": "category.ibx_utility.melee"
+  },
+  "order": 0,
+  "icon": "minecraft:iron_sword"
+}

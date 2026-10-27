@@ -1,0 +1,23 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "ibx_utility:default_recipes_enabled"
+    }
+  ],
+  "type": "ibx_utility:equipment_forge",
+  "category": "ibx_utility:armor",
+  "materials": [
+    {
+      "ingredient": "minecraft:flint",
+      "count": 3
+    },
+    {
+      "ingredient": "minecraft:iron_ingot",
+      "count": 2
+    }
+  ],
+  "result": {
+    "id": "minecraft:chainmail_boots",
+    "count": 1
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "ibx_utility:item/loot_bag/default"
+  }
+}

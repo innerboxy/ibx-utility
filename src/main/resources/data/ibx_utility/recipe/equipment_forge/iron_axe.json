@@ -1,0 +1,23 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "ibx_utility:default_recipes_enabled"
+    }
+  ],
+  "type": "ibx_utility:equipment_forge",
+  "category": "ibx_utility:melee",
+  "materials": [
+    {
+      "ingredient": "#minecraft:planks",
+      "count": 2
+    },
+    {
+      "ingredient": "minecraft:iron_ingot",
+      "count": 3
+    }
+  ],
+  "result": {
+    "id": "minecraft:iron_axe",
+    "count": 1
+  }
+}

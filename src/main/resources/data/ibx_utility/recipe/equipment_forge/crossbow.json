@@ -1,0 +1,27 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "ibx_utility:default_recipes_enabled"
+    }
+  ],
+  "type": "ibx_utility:equipment_forge",
+  "category": "ibx_utility:ranged",
+  "materials": [
+    {
+      "ingredient": "#minecraft:planks",
+      "count": 3
+    },
+    {
+      "ingredient": "minecraft:iron_ingot",
+      "count": 2
+    },
+    {
+      "ingredient": "minecraft:string",
+      "count": 2
+    }
+  ],
+  "result": {
+    "id": "minecraft:crossbow",
+    "count": 1
+  }
+}

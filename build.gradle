@@ -1,4 +1,4 @@
-// 装备锻造台 taverntales_4ging（独立模组，原 taverntales-4ging）。
+// IBX-Utility（ibx_utility）：酒馆轶事的功能方块（装备锻造台、战利品袋、制箭台），独立模组。
 // 2026-10-09 之前是 taverntales 主仓库的子模组（共用那边的 gradle/mod-common.gradle），现在改回独立项目，
 // 主模组从 Modrinth 加载已发布的版本。打包：gradlew build；开发客户端：gradlew runClient。
 plugins {

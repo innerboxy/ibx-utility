@@ -1,0 +1,12 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "ibx_utility:default_categories_enabled"
+    }
+  ],
+  "name": {
+    "translate": "category.ibx_utility.shield"
+  },
+  "order": 5,
+  "icon": "minecraft:shield"
+}

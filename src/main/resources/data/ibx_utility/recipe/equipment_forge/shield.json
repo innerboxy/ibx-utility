@@ -1,0 +1,23 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "ibx_utility:default_recipes_enabled"
+    }
+  ],
+  "type": "ibx_utility:equipment_forge",
+  "category": "ibx_utility:shield",
+  "materials": [
+    {
+      "ingredient": "#minecraft:planks",
+      "count": 6
+    },
+    {
+      "ingredient": "minecraft:iron_ingot",
+      "count": 1
+    }
+  ],
+  "result": {
+    "id": "minecraft:shield",
+    "count": 1
+  }
+}
