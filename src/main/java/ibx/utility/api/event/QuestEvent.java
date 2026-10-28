@@ -11,7 +11,7 @@ import java.util.UUID;
 
 /**
  * 任务事件,只在服务端发,发在 {@code NeoForge.EVENT_BUS} 上。
- * 接、加入、提交可以取消(取消后玩家在悬赏板上看到「现在不能这样做」);进度、放弃只是通知。
+ * 接、加入、提交可以取消(取消后玩家在悬赏板上只听到一声失败的低音);进度、放弃只是通知。
  */
 public abstract class QuestEvent extends Event {
     private final ServerPlayer player;

@@ -7,11 +7,10 @@ import net.minecraft.client.Minecraft;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 import java.util.List;
-import java.util.Optional;
 
 /** 客户端:服务端最近发来的悬赏板内容;收到 open 的就打开界面,否则刷新开着的界面。 */
 public final class ClientQuestBoard {
-    private static QuestBoardPayload current = new QuestBoardPayload(false, List.of(), List.of(), Optional.empty());
+    private static QuestBoardPayload current = new QuestBoardPayload(false, List.of(), List.of());
 
     private ClientQuestBoard() {}
 

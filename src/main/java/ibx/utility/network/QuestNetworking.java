@@ -2,7 +2,6 @@ package ibx.utility.network;
 
 import ibx.utility.block.QuestBoardBlock;
 import ibx.utility.client.ClientQuestBoard;
-import ibx.utility.config.Config;
 import ibx.utility.quest.QuestDefinition;
 import ibx.utility.quest.QuestService;
 import ibx.utility.quest.state.ActiveQuest;
@@ -12,7 +11,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -30,7 +28,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 /** 悬赏板的网络:右键打开、发界面内容、处理界面里的操作。 */
@@ -51,7 +48,7 @@ public final class QuestNetworking {
     /** 服务端:玩家右键了悬赏板 */
     public static void openBoard(ServerPlayer player, BlockPos pos) {
         OPEN_BOARDS.put(player.getUUID(), GlobalPos.of(player.level().dimension(), pos));
-        PacketDistributor.sendToPlayer(player, content(player, true, Optional.empty()));
+        PacketDistributor.sendToPlayer(player, content(player, true));
     }
 
     /** 人还在他打开的那块悬赏板旁边(同一维度、8 格内、那块板还在) */
@@ -67,7 +64,7 @@ public final class QuestNetworking {
     }
 
     /** 这个玩家在悬赏板上能看到的东西。做过的一次性任务本来看不到,但有能加入的队伍时照样列出来(只能加入) */
-    public static QuestBoardPayload content(ServerPlayer player, boolean open, Optional<Component> message) {
+    public static QuestBoardPayload content(ServerPlayer player, boolean open) {
         MinecraftServer server = player.level().getServer();
         List<Holder.Reference<QuestDefinition>> visible = QuestService.all(player.level().registryAccess())
                 .filter(quest -> QuestService.isVisible(player, quest) || !QuestService.joinableTeams(player, quest.key()).isEmpty())
@@ -88,7 +85,7 @@ public final class QuestNetworking {
                 infos.add(info(server, team, max, false));
             }
         }
-        return new QuestBoardPayload(open, visible.stream().map(Holder.Reference::key).toList(), infos, message);
+        return new QuestBoardPayload(open, visible.stream().map(Holder.Reference::key).toList(), infos);
     }
 
     private static QuestBoardPayload.TeamInfo info(MinecraftServer server, QuestTeams.Team team, int max, boolean mine) {
@@ -107,66 +104,32 @@ public final class QuestNetworking {
     /** 服务端:界面里点了一个操作。不在悬赏板旁边就不做;做完把新的界面内容发回去 */
     private static void handleAction(QuestActionPayload payload, IPayloadContext context) {
         if (context.player() instanceof ServerPlayer player) {
-            Component message = perform(player, payload);
-            PacketDistributor.sendToPlayer(player, content(player, false, Optional.of(message)));
+            perform(player, payload);
+            PacketDistributor.sendToPlayer(player, content(player, false));
         }
     }
 
     /**
-     * 做这个操作,返回结果。顺带只给这个玩家放一声:接下任务(自己开或加入队伍)是落笔声,
+     * 做这个操作,顺带只给这个玩家放一声:接下任务(自己开或加入队伍)是落笔声,
      * 没做成(太远、到上限、目标没达成……)是一声低音,交了一部分、完成、放弃不出声
      */
-    public static Component perform(ServerPlayer player, QuestActionPayload payload) {
+    public static void perform(ServerPlayer player, QuestActionPayload payload) {
         if (!nearBoard(player)) {
-            return cue(player, Cue.FAILED, Component.translatable("quest.ibx_utility.result.too_far"));
+            cue(player, Cue.FAILED);
+            return;
         }
         ResourceKey<QuestDefinition> key = payload.quest();
-        Component name = QuestService.lookup(player.level(), key).map(quest -> quest.value().name())
-                .orElse(Component.literal(key.identifier().toString()));
-        return switch (payload.action()) {
-            case ACCEPT -> {
-                QuestService.AcceptResult result = QuestService.accept(player, key);
-                yield cue(player, result == QuestService.AcceptResult.ACCEPTED ? Cue.ACCEPTED : Cue.FAILED, switch (result) {
-                    case ACCEPTED -> Component.translatable("quest.ibx_utility.result.accepted", name);
-                    case UNKNOWN -> Component.translatable("quest.ibx_utility.result.unknown");
-                    case ALREADY_ACTIVE -> Component.translatable("quest.ibx_utility.result.already_active");
-                    case NOT_OFFERED -> Component.translatable("quest.ibx_utility.result.not_offered");
-                    case LOCKED -> Component.translatable("quest.ibx_utility.result.locked");
-                    case ALREADY_COMPLETED -> Component.translatable("quest.ibx_utility.result.already_completed");
-                    case TOO_MANY -> Component.translatable("quest.ibx_utility.result.too_many", Config.MAX_ACTIVE_QUESTS.getAsInt());
-                    case CANCELLED -> Component.translatable("quest.ibx_utility.result.cancelled");
-                });
-            }
-            case JOIN -> {
-                if (payload.team().isEmpty()) {
-                    yield cue(player, Cue.FAILED, Component.translatable("quest.ibx_utility.result.unknown_team"));
-                }
-                QuestService.JoinResult result = QuestService.join(player, payload.team().get());
-                yield cue(player, result == QuestService.JoinResult.JOINED ? Cue.ACCEPTED : Cue.FAILED, switch (result) {
-                    case JOINED -> Component.translatable("quest.ibx_utility.result.joined", name);
-                    case UNKNOWN_TEAM -> Component.translatable("quest.ibx_utility.result.unknown_team");
-                    case ALREADY_ACTIVE -> Component.translatable("quest.ibx_utility.result.already_active");
-                    case FULL -> Component.translatable("quest.ibx_utility.result.full");
-                    case LOCKED -> Component.translatable("quest.ibx_utility.result.locked");
-                    case TOO_MANY -> Component.translatable("quest.ibx_utility.result.too_many", Config.MAX_ACTIVE_QUESTS.getAsInt());
-                    case CANCELLED -> Component.translatable("quest.ibx_utility.result.cancelled");
-                });
-            }
-            case SUBMIT -> {
-                QuestService.SubmitResult result = QuestService.submit(player, key);
-                Cue cue = result == QuestService.SubmitResult.COMPLETED || result == QuestService.SubmitResult.PROGRESSED ? Cue.NONE : Cue.FAILED;
-                yield cue(player, cue, switch (result) {
-                    case COMPLETED -> Component.translatable("quest.ibx_utility.result.completed", name);
-                    case PROGRESSED -> Component.translatable("quest.ibx_utility.result.progressed");
-                    case NOT_COMPLETE -> Component.translatable("quest.ibx_utility.result.not_complete");
-                    case NOT_ACTIVE -> Component.translatable("quest.ibx_utility.result.not_active");
-                    case CANCELLED -> Component.translatable("quest.ibx_utility.result.cancelled");
-                });
-            }
-            case ABANDON -> QuestService.abandon(player, key)
-                    ? Component.translatable("quest.ibx_utility.result.abandoned", name)
-                    : cue(player, Cue.FAILED, Component.translatable("quest.ibx_utility.result.not_active"));
-        };
+        cue(player, switch (payload.action()) {
+            case ACCEPT -> QuestService.accept(player, key) == QuestService.AcceptResult.ACCEPTED ? Cue.ACCEPTED : Cue.FAILED;
+            case JOIN -> payload.team()
+                    .map(team -> QuestService.join(player, team) == QuestService.JoinResult.JOINED ? Cue.ACCEPTED : Cue.FAILED)
+                    .orElse(Cue.FAILED);
+            case SUBMIT -> switch (QuestService.submit(player, key)) {
+                case COMPLETED, PROGRESSED -> Cue.NONE;
+                case NOT_COMPLETE, NOT_ACTIVE, CANCELLED -> Cue.FAILED;
+            };
+            case ABANDON -> QuestService.abandon(player, key) ? Cue.NONE : Cue.FAILED;
+        });
     }
 
     /** 操作完给这个玩家的那一声 */
@@ -178,8 +141,8 @@ public final class QuestNetworking {
         NONE
     }
 
-    /** 只给这个玩家放 cue 那一声,原样返回 message */
-    private static Component cue(ServerPlayer player, Cue cue, Component message) {
+    /** 只给这个玩家放 cue 那一声 */
+    private static void cue(ServerPlayer player, Cue cue) {
         Holder<SoundEvent> sound = switch (cue) {
             case ACCEPTED -> BuiltInRegistries.SOUND_EVENT.wrapAsHolder(SoundEvents.UI_CARTOGRAPHY_TABLE_TAKE_RESULT);
             case FAILED -> SoundEvents.NOTE_BLOCK_BASS;
@@ -190,7 +153,6 @@ public final class QuestNetworking {
             player.connection.send(new ClientboundSoundPacket(sound, SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(),
                     1.0F, pitch, player.getRandom().nextLong()));
         }
-        return message;
     }
 
     /** 客户端:收到界面内容 */

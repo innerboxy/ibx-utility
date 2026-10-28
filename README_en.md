@@ -797,7 +797,7 @@ The grant command:
    - If the leader leaves or logs out, the earliest remaining member takes over.
    - A player who already finished a one-time quest can still join someone else's team for it, and still gets the reward and another completion.
 6. **Daily random**: quests with `pool` set to `random` go into the random pool. Every in-game day (every 24000 ticks of game time; sleeping doesn't skip ahead) the server draws `dailyQuestCount` of them by weight, without repeats. A random quest you already accepted can still be finished after the day changes.
-7. **Feedback**: only the tracker in the top-left corner (off by default, see [2](#2-configuration)) — no pop-ups, chat messages or sounds. Without the tracker, check progress on the board's "Accepted Quests" page.
+7. **Feedback**: progress only shows in the tracker in the top-left corner (off by default, see [2](#2-configuration)); without the tracker, check the board's "Accepted Quests" page. Actions on the board only give sounds: a pen scratch when a quest is accepted or a team joined, a low bass note when an action fails (too far, at the limit, objectives not done, etc.), heard only by that player. No result text, pop-ups or chat messages.
 
 > Accepting, joining, submitting and abandoning all require standing within 8 blocks of the board you opened.
 
@@ -965,7 +965,7 @@ The smallest quest only needs the three required fields:
 | `QuestEvent.Submit` | Yes | Every objective is done, rewards not given yet. When cancelled the quest stays, and items handed in this time still count as progress. |
 | `QuestEvent.Abandon` | No | Abandoning, before progress is cleared. |
 
-When cancelled, the player sees "You can't do that right now" on the board.
+When cancelled, the player only hears the low "failed" note on the board.
 
 **Registering new types**: objectives, rewards, requirements and quest actions each have a registry, with keys in `ibx.utility.registry.QuestTypeRegistries`. The registered value is the type's `MapCodec`; write its id as `"type"` in quest JSON to use it:
 
