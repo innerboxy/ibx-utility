@@ -24,7 +24,7 @@ import java.util.UUID;
  *
  * @param quests  这个玩家能看到的任务(挂着的、前置满足的、已接的)
  * @param teams   这些任务里跟他有关的队伍:他自己的队伍,和他能加入的队伍
- * @param message 刚才那个操作的结果,显示在界面里
+ * @param message 刚才那个操作的结果
  */
 public record QuestBoardPayload(boolean open, List<ResourceKey<QuestDefinition>> quests, List<TeamInfo> teams,
                                 Optional<Component> message) implements CustomPacketPayload {

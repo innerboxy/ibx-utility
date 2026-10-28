@@ -915,15 +915,18 @@ pool[1]: rolls=1, entries=[虞美人(8), 铁块(1)] → 8/9 概率给虞美人, 
 
 ### 6.4 目标、奖励与前置条件
 
-`item` / `entity` 都可以写单个 id、带 `#` 的标签,或它们组成的数组。显示时标签用标签的译名,数组用第一个的名字和图标。
+`item` / `entity` 都可以写单个 id、带 `#` 的标签,或它们组成的数组。
+
+- **名字**:标签用标签的译名(没有译名就显示 `#id`,比如 `#minecraft:logs`),数组用第一个的名字。三种目标都可以加可选的 `name` 自己定显示名(字符串或 `{ "translate": "..." }`),写了就代替自动取的名字:`{ "type": "ibx_utility:submit_item", "item": "#minecraft:logs", "count": 16, "name": "原木" }`。
+- **图标**:标签、数组里的物品(生物是有刷怪蛋的那些)每秒轮换一个,悬赏板和追踪栏都一样(同装备锻造台的标签材料)。
 
 **目标**(`objectives`):
 
 | type | 字段 | 说明 |
 | --- | --- | --- |
-| `ibx_utility:kill` | `entity`,`count`(默认 1) | 击杀生物。目标图标是它的刷怪蛋(没有就不画)。 |
-| `ibx_utility:submit_item` | `item`,`count`(默认 1) | 在悬赏板上把物品交上去,会被收走,可以分几次交。 |
-| `ibx_utility:collect_item` | `item`,`count`(默认 1) | 提交那一刻背包里有就行,不收走。追踪栏实时数背包。 |
+| `ibx_utility:kill` | `entity`,`count`(默认 1),`name`(可选) | 击杀生物。目标图标是它的刷怪蛋(没有就不画)。 |
+| `ibx_utility:submit_item` | `item`,`count`(默认 1),`name`(可选) | 在悬赏板上把物品交上去,会被收走,可以分几次交。 |
+| `ibx_utility:collect_item` | `item`,`count`(默认 1),`name`(可选) | 提交那一刻背包里有就行,不收走。追踪栏实时数背包。 |
 
 **奖励**(`rewards`):
 

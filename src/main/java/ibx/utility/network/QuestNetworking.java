@@ -11,11 +11,16 @@ import ibx.utility.quest.state.QuestTeams;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.NameAndId;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -107,45 +112,85 @@ public final class QuestNetworking {
         }
     }
 
-    /** 做这个操作,返回给玩家看的结果 */
+    /**
+     * 做这个操作,返回结果。顺带只给这个玩家放一声:接下任务(自己开或加入队伍)是落笔声,
+     * 没做成(太远、到上限、目标没达成……)是一声低音,交了一部分、完成、放弃不出声
+     */
     public static Component perform(ServerPlayer player, QuestActionPayload payload) {
         if (!nearBoard(player)) {
-            return Component.translatable("quest.ibx_utility.result.too_far");
+            return cue(player, Cue.FAILED, Component.translatable("quest.ibx_utility.result.too_far"));
         }
         ResourceKey<QuestDefinition> key = payload.quest();
         Component name = QuestService.lookup(player.level(), key).map(quest -> quest.value().name())
                 .orElse(Component.literal(key.identifier().toString()));
         return switch (payload.action()) {
-            case ACCEPT -> switch (QuestService.accept(player, key)) {
-                case ACCEPTED -> Component.translatable("quest.ibx_utility.result.accepted", name);
-                case UNKNOWN -> Component.translatable("quest.ibx_utility.result.unknown");
-                case ALREADY_ACTIVE -> Component.translatable("quest.ibx_utility.result.already_active");
-                case NOT_OFFERED -> Component.translatable("quest.ibx_utility.result.not_offered");
-                case LOCKED -> Component.translatable("quest.ibx_utility.result.locked");
-                case ALREADY_COMPLETED -> Component.translatable("quest.ibx_utility.result.already_completed");
-                case TOO_MANY -> Component.translatable("quest.ibx_utility.result.too_many", Config.MAX_ACTIVE_QUESTS.getAsInt());
-                case CANCELLED -> Component.translatable("quest.ibx_utility.result.cancelled");
-            };
-            case JOIN -> payload.team().map(team -> switch (QuestService.join(player, team)) {
-                case JOINED -> Component.translatable("quest.ibx_utility.result.joined", name);
-                case UNKNOWN_TEAM -> Component.translatable("quest.ibx_utility.result.unknown_team");
-                case ALREADY_ACTIVE -> Component.translatable("quest.ibx_utility.result.already_active");
-                case FULL -> Component.translatable("quest.ibx_utility.result.full");
-                case LOCKED -> Component.translatable("quest.ibx_utility.result.locked");
-                case TOO_MANY -> Component.translatable("quest.ibx_utility.result.too_many", Config.MAX_ACTIVE_QUESTS.getAsInt());
-                case CANCELLED -> Component.translatable("quest.ibx_utility.result.cancelled");
-            }).orElse(Component.translatable("quest.ibx_utility.result.unknown_team"));
-            case SUBMIT -> switch (QuestService.submit(player, key)) {
-                case COMPLETED -> Component.translatable("quest.ibx_utility.result.completed", name);
-                case PROGRESSED -> Component.translatable("quest.ibx_utility.result.progressed");
-                case NOT_COMPLETE -> Component.translatable("quest.ibx_utility.result.not_complete");
-                case NOT_ACTIVE -> Component.translatable("quest.ibx_utility.result.not_active");
-                case CANCELLED -> Component.translatable("quest.ibx_utility.result.cancelled");
-            };
+            case ACCEPT -> {
+                QuestService.AcceptResult result = QuestService.accept(player, key);
+                yield cue(player, result == QuestService.AcceptResult.ACCEPTED ? Cue.ACCEPTED : Cue.FAILED, switch (result) {
+                    case ACCEPTED -> Component.translatable("quest.ibx_utility.result.accepted", name);
+                    case UNKNOWN -> Component.translatable("quest.ibx_utility.result.unknown");
+                    case ALREADY_ACTIVE -> Component.translatable("quest.ibx_utility.result.already_active");
+                    case NOT_OFFERED -> Component.translatable("quest.ibx_utility.result.not_offered");
+                    case LOCKED -> Component.translatable("quest.ibx_utility.result.locked");
+                    case ALREADY_COMPLETED -> Component.translatable("quest.ibx_utility.result.already_completed");
+                    case TOO_MANY -> Component.translatable("quest.ibx_utility.result.too_many", Config.MAX_ACTIVE_QUESTS.getAsInt());
+                    case CANCELLED -> Component.translatable("quest.ibx_utility.result.cancelled");
+                });
+            }
+            case JOIN -> {
+                if (payload.team().isEmpty()) {
+                    yield cue(player, Cue.FAILED, Component.translatable("quest.ibx_utility.result.unknown_team"));
+                }
+                QuestService.JoinResult result = QuestService.join(player, payload.team().get());
+                yield cue(player, result == QuestService.JoinResult.JOINED ? Cue.ACCEPTED : Cue.FAILED, switch (result) {
+                    case JOINED -> Component.translatable("quest.ibx_utility.result.joined", name);
+                    case UNKNOWN_TEAM -> Component.translatable("quest.ibx_utility.result.unknown_team");
+                    case ALREADY_ACTIVE -> Component.translatable("quest.ibx_utility.result.already_active");
+                    case FULL -> Component.translatable("quest.ibx_utility.result.full");
+                    case LOCKED -> Component.translatable("quest.ibx_utility.result.locked");
+                    case TOO_MANY -> Component.translatable("quest.ibx_utility.result.too_many", Config.MAX_ACTIVE_QUESTS.getAsInt());
+                    case CANCELLED -> Component.translatable("quest.ibx_utility.result.cancelled");
+                });
+            }
+            case SUBMIT -> {
+                QuestService.SubmitResult result = QuestService.submit(player, key);
+                Cue cue = result == QuestService.SubmitResult.COMPLETED || result == QuestService.SubmitResult.PROGRESSED ? Cue.NONE : Cue.FAILED;
+                yield cue(player, cue, switch (result) {
+                    case COMPLETED -> Component.translatable("quest.ibx_utility.result.completed", name);
+                    case PROGRESSED -> Component.translatable("quest.ibx_utility.result.progressed");
+                    case NOT_COMPLETE -> Component.translatable("quest.ibx_utility.result.not_complete");
+                    case NOT_ACTIVE -> Component.translatable("quest.ibx_utility.result.not_active");
+                    case CANCELLED -> Component.translatable("quest.ibx_utility.result.cancelled");
+                });
+            }
             case ABANDON -> QuestService.abandon(player, key)
                     ? Component.translatable("quest.ibx_utility.result.abandoned", name)
-                    : Component.translatable("quest.ibx_utility.result.not_active");
+                    : cue(player, Cue.FAILED, Component.translatable("quest.ibx_utility.result.not_active"));
         };
+    }
+
+    /** 操作完给这个玩家的那一声 */
+    private enum Cue {
+        /** 接下了任务:在契约上落笔(原版制图台取图那声) */
+        ACCEPTED,
+        /** 没做成:一声低沉的贝斯音 */
+        FAILED,
+        NONE
+    }
+
+    /** 只给这个玩家放 cue 那一声,原样返回 message */
+    private static Component cue(ServerPlayer player, Cue cue, Component message) {
+        Holder<SoundEvent> sound = switch (cue) {
+            case ACCEPTED -> BuiltInRegistries.SOUND_EVENT.wrapAsHolder(SoundEvents.UI_CARTOGRAPHY_TABLE_TAKE_RESULT);
+            case FAILED -> SoundEvents.NOTE_BLOCK_BASS;
+            case NONE -> null;
+        };
+        if (sound != null) {
+            float pitch = cue == Cue.FAILED ? 0.6F : 1.0F;
+            player.connection.send(new ClientboundSoundPacket(sound, SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(),
+                    1.0F, pitch, player.getRandom().nextLong()));
+        }
+        return message;
     }
 
     /** 客户端:收到界面内容 */

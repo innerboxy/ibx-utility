@@ -3,6 +3,7 @@ package ibx.utility.client;
 import ibx.utility.IbxUtility;
 import ibx.utility.config.ClientConfig;
 import ibx.utility.quest.QuestDefinition;
+import ibx.utility.quest.QuestDisplay;
 import ibx.utility.quest.objective.QuestObjective;
 import ibx.utility.quest.state.ActiveQuest;
 import ibx.utility.quest.state.PlayerQuests;
@@ -101,7 +102,7 @@ public final class QuestTracker {
         }
         for (int i = 0; i < objectives.size(); i++) {
             QuestObjective objective = objectives.get(i);
-            ItemStack icon = objective.displayIcon();
+            ItemStack icon = QuestDisplay.cycle(objective.displayIcons());
             if (!icon.isEmpty()) {
                 graphics.item(icon, x, y);
                 x += 17;

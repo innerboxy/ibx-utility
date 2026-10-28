@@ -6,6 +6,7 @@ import ibx.utility.network.QuestActionPayload;
 import ibx.utility.network.QuestBoardPayload;
 import ibx.utility.quest.QuestCategoryDefinition;
 import ibx.utility.quest.QuestDefinition;
+import ibx.utility.quest.QuestDisplay;
 import ibx.utility.quest.QuestPool;
 import ibx.utility.quest.objective.QuestObjective;
 import ibx.utility.quest.reward.QuestReward;
@@ -299,11 +300,7 @@ public class QuestBoardScreen extends Screen {
         drawList(graphics, px, py, mouseX, mouseY);
         if (selectedQuest != null) {
             definition(selectedQuest).ifPresent(quest -> drawDetail(graphics, quest, px + PAGE_W + 10, py + 6, PAGE_W - 18, mouseX, mouseY));
-        } else {
-            drawWrapped(graphics, Component.translatable("quest.ibx_utility.board.empty"), px + PAGE_W + 10, py + 8, PAGE_W - 18, FADED, 6);
         }
-        ClientQuestBoard.current().message().ifPresent(message ->
-                graphics.text(font, fit(message.getString(), PAGE_W - 18), px + PAGE_W + 10, py + PAGE_H - 11, INK_LIGHT, false));
     }
 
     /**
@@ -383,8 +380,10 @@ public class QuestBoardScreen extends Screen {
         }
         List<ResourceKey<QuestDefinition>> shown = questsIn(selectedTab);
         if (shown.isEmpty()) {
+            // 放在第一、二道账本线(书页贴图里每行底下那道)的正中间
             Component empty = Component.translatable("quest.ibx_utility.board.no_quests");
-            graphics.text(font, empty, px + (PAGE_W - font.width(empty)) / 2, py + 40, FADED, false);
+            int firstLine = py + 22 + ROW_H - 2;
+            graphics.text(font, empty, px + (PAGE_W - font.width(empty)) / 2, firstLine + ROW_H / 2 - 4, FADED, false);
             return;
         }
         int pages = (shown.size() + ROWS - 1) / ROWS;
@@ -459,13 +458,13 @@ public class QuestBoardScreen extends Screen {
     }
 
     /**
-     * 右页:图标和名字(下面两道横线),再往下是简介、目标、奖励、队伍,底下一排蜡封按钮(位置固定),最底一行是结果消息。
+     * 右页:图标和名字(下面两道横线),再往下是简介、目标、奖励、队伍,最底下一排蜡封按钮(位置固定,和左页翻页那行齐底)。
      * 中间的内容一页放不下就分页:每页都留着图标和名字,页码和金箭头在蜡封按钮上面。
      */
     private void drawDetail(GuiGraphicsExtractor graphics, QuestDefinition quest, int x, int y, int w, int mouseX, int mouseY) {
         ResourceKey<QuestDefinition> key = selectedQuest;
         ActiveQuest active = playerQuests().active(key);
-        int buttonY = y + PAGE_H - 36;
+        int buttonY = y + PAGE_H - 23;
         graphics.item(quest.iconStack(), x, y);
         graphics.text(font, fit(quest.name().getString(), w - 20), x + 20, y + 4, INK, false);
         graphics.fill(x, y + 18, x + w, y + 19, RULE);
@@ -547,7 +546,7 @@ public class QuestBoardScreen extends Screen {
             QuestObjective objective = objectives.get(i);
             int progress = Math.min(objective.count(), objective.displayProgress(minecraft.player, active == null ? 0 : active.progress(i)));
             blocks.add(new Block(18, false, objectivesHeading, (graphics, y, mouseX, mouseY) -> {
-                ItemStack icon = objective.displayIcon();
+                ItemStack icon = QuestDisplay.cycle(objective.displayIcons());
                 int tx = x;
                 if (!icon.isEmpty()) {
                     graphics.item(icon, x, y);
@@ -640,15 +639,6 @@ public class QuestBoardScreen extends Screen {
     }
 
     // ---------------------------------------------------------------- 小件
-
-    private int drawWrapped(GuiGraphicsExtractor graphics, Component text, int x, int y, int w, int color, int maxLines) {
-        List<FormattedCharSequence> lines = font.split(text, w);
-        for (int i = 0; i < Math.min(maxLines, lines.size()); i++) {
-            graphics.text(font, lines.get(i), x, y, color, false);
-            y += 10;
-        }
-        return y;
-    }
 
     private int sealWidth(Component label) {
         return SEAL + 3 + font.width(label);

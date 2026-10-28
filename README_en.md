@@ -913,15 +913,18 @@ The smallest quest only needs the three required fields:
 
 ### 6.4 Objectives, rewards and requirements
 
-`item` / `entity` accept a single id, a `#` tag, or an array of them. Tags are displayed by their translated tag name; arrays use the first entry's name and icon.
+`item` / `entity` accept a single id, a `#` tag, or an array of them.
+
+- **Name**: tags show their translated tag name (`#id` when there is none, e.g. `#minecraft:logs`); arrays use the first entry's name. All three objective types accept an optional `name` (a string or `{ "translate": "..." }`) that replaces the automatic name: `{ "type": "ibx_utility:submit_item", "item": "#minecraft:logs", "count": 16, "name": "Logs" }`.
+- **Icon**: for tags and arrays the icon cycles through the entries once per second (for mobs, the ones that have a spawn egg), on the board and in the tracker alike (same as tag materials in the Equipment Forge).
 
 **Objectives** (`objectives`):
 
 | type | Fields | Description |
 | --- | --- | --- |
-| `ibx_utility:kill` | `entity`, `count` (default 1) | Kill mobs. Its icon is the mob's spawn egg (none if there isn't one). |
-| `ibx_utility:submit_item` | `item`, `count` (default 1) | Hand the items in at the board; they are taken, and can be handed in over several trips. |
-| `ibx_utility:collect_item` | `item`, `count` (default 1) | Just have them in your inventory when you submit; nothing is taken. The tracker counts the inventory live. |
+| `ibx_utility:kill` | `entity`, `count` (default 1), `name` (optional) | Kill mobs. Its icon is the mob's spawn egg (none if there isn't one). |
+| `ibx_utility:submit_item` | `item`, `count` (default 1), `name` (optional) | Hand the items in at the board; they are taken, and can be handed in over several trips. |
+| `ibx_utility:collect_item` | `item`, `count` (default 1), `name` (optional) | Just have them in your inventory when you submit; nothing is taken. The tracker counts the inventory live. |
 
 **Rewards** (`rewards`):
 

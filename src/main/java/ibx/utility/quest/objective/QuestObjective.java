@@ -9,6 +9,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.List;
 import java.util.function.Function;
 
 /**
@@ -39,6 +40,12 @@ public interface QuestObjective {
     /** 显示用:目标对象的图标(生物用刷怪蛋,物品用第一个物品);空就不画 */
     default ItemStack displayIcon() {
         return ItemStack.EMPTY;
+    }
+
+    /** 显示用:目标对象的全部图标(标签、列表里的每一个),悬赏板和追踪栏每秒轮换一个;默认只有 displayIcon 那一个 */
+    default List<ItemStack> displayIcons() {
+        ItemStack icon = displayIcon();
+        return icon.isEmpty() ? List.of() : List.of(icon);
     }
 
     /** 显示用:目标对象的名字(「狼」「骨头」「原木」),追踪栏用 */
