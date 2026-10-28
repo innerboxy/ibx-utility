@@ -45,5 +45,32 @@ public class Config {
                     "Disable to define fletching recipes entirely via datapack.")
             .define("enableDefaultFletchingRecipes", true);
 
+    /** 悬赏板分页的开关:自带的两页(关键任务 / 自由任务)各一个,另一个留给整合包自己加的每日任务页。默认开启 */
+    public static final ModConfigSpec.BooleanValue ENABLE_KEY_QUEST_CATEGORY = BUILDER
+            .comment("加载悬赏板自带的「关键任务」页。关闭后写在这页的任务也跟着不显示、不能接(下面两个开关同理)。",
+                    "Load the quest board's built-in Key Quests page. When disabled, quests on this page are skipped too (same for the two below).")
+            .define("enableKeyQuestCategory", true);
+
+    public static final ModConfigSpec.BooleanValue ENABLE_FREE_QUEST_CATEGORY = BUILDER
+            .comment("加载悬赏板自带的「自由任务」页。", "Load the quest board's built-in Free Quests page.")
+            .define("enableFreeQuestCategory", true);
+
+    public static final ModConfigSpec.BooleanValue ENABLE_DAILY_QUEST_CATEGORY = BUILDER
+            .comment("「每日任务」页的开关。模组不带这一页;整合包自己加的每日任务页挂上 ibx_utility:daily_quest_category_enabled 条件,就受这个开关控制。",
+                    "Switch for a Daily Quests page. The mod doesn't ship one; a modpack's own daily page that uses the",
+                    "ibx_utility:daily_quest_category_enabled condition is controlled by this switch.")
+            .define("enableDailyQuestCategory", true);
+
+    /** 一个人同时能接几个任务。默认 5 */
+    public static final ModConfigSpec.IntValue MAX_ACTIVE_QUESTS = BUILDER
+            .comment("一个人同时能接几个任务。", "How many quests one player can have accepted at the same time.")
+            .defineInRange("maxActiveQuests", 5, 1, 64);
+
+    /** 每天从随机池抽几条任务挂上悬赏板。默认 5 */
+    public static final ModConfigSpec.IntValue DAILY_QUEST_COUNT = BUILDER
+            .comment("每天(游戏总时长每 24000 tick)从随机池抽几条任务挂上悬赏板,全服一份。",
+                    "How many random-pool quests are posted each day (every 24000 ticks of game time), shared by the server.")
+            .defineInRange("dailyQuestCount", 5, 0, 64);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 }

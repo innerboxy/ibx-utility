@@ -5,6 +5,9 @@ import ibx.utility.block.FletchingTableInteraction;
 import ibx.utility.config.Config;
 import ibx.utility.lootbag.LootBagItem;
 import ibx.utility.network.ModNetworking;
+import ibx.utility.network.QuestNetworking;
+import ibx.utility.quest.QuestService;
+import ibx.utility.registry.ModAttachments;
 import ibx.utility.registry.ModBlocks;
 import ibx.utility.registry.ModConditions;
 import ibx.utility.registry.ModDataComponents;
@@ -13,6 +16,7 @@ import ibx.utility.registry.ModLootContextParamSets;
 import ibx.utility.registry.ModMenus;
 import ibx.utility.registry.ModRecipes;
 import ibx.utility.registry.ModRegistries;
+import ibx.utility.registry.QuestTypeRegistries;
 import net.minecraft.world.item.CreativeModeTab.TabVisibility;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
@@ -38,6 +42,8 @@ public class IbxUtility {
         ModRecipes.RECIPE_SERIALIZERS.register(modEventBus);
         ModConditions.CONDITION_CODECS.register(modEventBus);
         ModDataComponents.COMPONENTS.register(modEventBus);
+        QuestTypeRegistries.register(modEventBus);
+        ModAttachments.ATTACHMENT_TYPES.register(modEventBus);
         modEventBus.addListener(ModNetworking::register);
         modEventBus.addListener(ModRegistries::register);
         modEventBus.addListener(this::addCreative);
@@ -50,6 +56,11 @@ public class IbxUtility {
         NeoForge.EVENT_BUS.addListener(ModNetworking::onDatapackSync);
         // 右键原版制箭台打开制箭界面
         NeoForge.EVENT_BUS.addListener(FletchingTableInteraction::onRightClickBlock);
+        // 任务:击杀计数、登录时补记 / 清理、下线时换发起人
+        NeoForge.EVENT_BUS.addListener(QuestService::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(QuestService::onLogin);
+        NeoForge.EVENT_BUS.addListener(QuestService::onLogout);
+        NeoForge.EVENT_BUS.addListener(QuestNetworking::onLogout);
 
         // 通用配置:控制是否移除原版木质配方
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);

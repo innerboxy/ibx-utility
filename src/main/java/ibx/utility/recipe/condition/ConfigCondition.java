@@ -34,6 +34,16 @@ public final class ConfigCondition implements ICondition {
     public static final ConfigCondition DEFAULT_CATEGORIES_ENABLED = new ConfigCondition(
             "default_categories_enabled", Config.ENABLE_DEFAULT_CATEGORIES::getAsBoolean);
 
+    /** 悬赏板自带的三页,各挂在对应的分页定义上 */
+    public static final ConfigCondition KEY_QUEST_CATEGORY_ENABLED = new ConfigCondition(
+            "key_quest_category_enabled", Config.ENABLE_KEY_QUEST_CATEGORY::getAsBoolean);
+
+    public static final ConfigCondition FREE_QUEST_CATEGORY_ENABLED = new ConfigCondition(
+            "free_quest_category_enabled", Config.ENABLE_FREE_QUEST_CATEGORY::getAsBoolean);
+
+    public static final ConfigCondition DAILY_QUEST_CATEGORY_ENABLED = new ConfigCondition(
+            "daily_quest_category_enabled", Config.ENABLE_DAILY_QUEST_CATEGORY::getAsBoolean);
+
     private final String name;
     private final BooleanSupplier enabled;
     private final MapCodec<ConfigCondition> codec;

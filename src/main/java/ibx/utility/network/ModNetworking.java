@@ -23,6 +23,7 @@ public class ModNetworking {
         registrar.playToServer(CraftEquipmentPayload.TYPE, CraftEquipmentPayload.STREAM_CODEC, ModNetworking::handleCraft);
         registrar.playToClient(NetItemsPayload.TYPE, NetItemsPayload.STREAM_CODEC, ModNetworking::handleNetItems);
         registrar.playToClient(LootBagSyncPayload.TYPE, LootBagSyncPayload.STREAM_CODEC, ModNetworking::handleLootBagSync);
+        QuestNetworking.register(registrar);
     }
 
     /**

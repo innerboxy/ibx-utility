@@ -1,10 +1,13 @@
 package ibx.utility.block;
 
 import com.mojang.serialization.MapCodec;
+import ibx.utility.network.QuestNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -23,6 +26,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.pathfinder.PathComputationType;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -208,6 +212,15 @@ public class QuestBoardBlock extends HorizontalDirectionalBlock {
         }
         Part part = state.getValue(PART);
         return state.setValue(FACING, mirror.mirror(state.getValue(FACING))).setValue(PART, Part.of(1 - part.col, part.row));
+    }
+
+    /** 右键任意一格:打开悬赏板(服务端发界面内容,客户端收到后开界面) */
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
+        if (player instanceof ServerPlayer serverPlayer) {
+            QuestNetworking.openBoard(serverPlayer, pos);
+        }
+        return InteractionResult.SUCCESS;
     }
 
     @Override

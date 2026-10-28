@@ -28,6 +28,15 @@ public class ModConditions {
     public static final DeferredHolder<MapCodec<? extends ICondition>, MapCodec<ConfigCondition>> DEFAULT_CATEGORIES_ENABLED =
             register(ConfigCondition.DEFAULT_CATEGORIES_ENABLED);
 
+    public static final DeferredHolder<MapCodec<? extends ICondition>, MapCodec<ConfigCondition>> KEY_QUEST_CATEGORY_ENABLED =
+            register(ConfigCondition.KEY_QUEST_CATEGORY_ENABLED);
+
+    public static final DeferredHolder<MapCodec<? extends ICondition>, MapCodec<ConfigCondition>> FREE_QUEST_CATEGORY_ENABLED =
+            register(ConfigCondition.FREE_QUEST_CATEGORY_ENABLED);
+
+    public static final DeferredHolder<MapCodec<? extends ICondition>, MapCodec<ConfigCondition>> DAILY_QUEST_CATEGORY_ENABLED =
+            register(ConfigCondition.DAILY_QUEST_CATEGORY_ENABLED);
+
     private static DeferredHolder<MapCodec<? extends ICondition>, MapCodec<ConfigCondition>> register(ConfigCondition condition) {
         return CONDITION_CODECS.register(condition.name(), condition::codec);
     }

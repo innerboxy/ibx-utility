@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "P": "#minecraft:planks",
+    "R": "minecraft:paper",
+    "B": "minecraft:writable_book",
+    "S": "#c:rods/wooden"
+  },
+  "pattern": [
+    "PPP",
+    "RBR",
+    "S S"
+  ],
+  "result": {
+    "id": "ibx_utility:quest_board",
+    "count": 1
+  }
+}

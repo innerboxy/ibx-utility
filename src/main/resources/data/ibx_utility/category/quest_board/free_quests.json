@@ -1,0 +1,12 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "ibx_utility:free_quest_category_enabled"
+    }
+  ],
+  "name": {
+    "translate": "category.ibx_utility.free_quests"
+  },
+  "order": 1,
+  "icon": "minecraft:map"
+}

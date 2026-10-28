@@ -1,0 +1,12 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "ibx_utility:key_quest_category_enabled"
+    }
+  ],
+  "name": {
+    "translate": "category.ibx_utility.key_quests"
+  },
+  "order": 0,
+  "icon": "minecraft:writable_book"
+}
