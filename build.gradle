@@ -32,7 +32,7 @@ repositories {
         content { includeGroup "mezz.jei" }
     }
     maven {
-        name = "Modrinth" // BeyondDimensions, JER
+        name = "Modrinth" // BeyondDimensions, JER, IPN
         url = "https://api.modrinth.com/maven"
         content { includeGroup "maven.modrinth" }
     }
@@ -106,6 +106,10 @@ dependencies {
     // Just Enough Resources (optional)：在 JEI 里展示战利品袋掉落。JER 没有单独的 api 构件，整个模组 compileOnly
     compileOnly "maven.modrinth:just-enough-resources-jer:${jer_version}"
     runtimeOnly "maven.modrinth:just-enough-resources-jer:${jer_version}"
+
+    // Inventory Profiles Next (optional)：只用 org.anti_ad.mc.ipn.api 里的注解控制锻造台界面上的整理按钮。
+    // 没装 IPN 时 JVM 会忽略找不到的注解，所以 compileOnly 即可；不要把注解类复制进本模组（同包冲突）
+    compileOnly "maven.modrinth:inventory-profiles-next:${ipn_version}"
 }
 
 // Expands ${} properties in src/main/templates (META-INF/neoforge.mods.toml).

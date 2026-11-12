@@ -34,6 +34,9 @@ import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.display.SlotDisplayContext;
 import net.neoforged.neoforge.common.crafting.SizedIngredient;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import org.anti_ad.mc.ipn.api.IPNButton;
+import org.anti_ad.mc.ipn.api.IPNGuiHint;
+import org.anti_ad.mc.ipn.api.IPNPlayerSideOnly;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -45,6 +48,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+/*
+ * Inventory Profiles Next 联动:菜单里只有玩家背包槽(左栏装备格是自绘的,不是 Slot),
+ * IPN 默认会把它当容器界面,在右上角铭牌处画出容器侧的整理按钮。
+ * 只保留玩家背包侧的整理按钮,并隐藏无意义的"全部移入/移出容器"。没装 IPN 时这些注解被忽略。
+ */
+@IPNPlayerSideOnly
+@IPNGuiHint(button = IPNButton.MOVE_TO_CONTAINER, hide = true)
+@IPNGuiHint(button = IPNButton.MOVE_TO_PLAYER, hide = true)
 public class EquipmentForgeScreen extends AbstractContainerScreen<EquipmentForgeMenu> {
     /*
      * 布局:整体 176 宽(与原版 GUI 一致,仅比 162 的背包栏稍宽)。
