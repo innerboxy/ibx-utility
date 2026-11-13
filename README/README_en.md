@@ -55,6 +55,8 @@ See the [Quest Board tutorial](../TUTORIAL/QUEST_BOARD_en.md).
 | [JEI](https://www.curseforge.com/minecraft/mc-mods/jei) `19+` | Optional (client) | Adds "Equipment Forge" and "Fletching Table" recipe-lookup categories; clicking JEI's "+" in the forge UI jumps straight to that recipe with it selected, and in the fletching UI it fills in the materials |
 | [JustEnoughResources](https://modrinth.com/mod/just-enough-resources-jer) `1.6+` (JER) | Optional (client) | Adds a "Loot Bag" category showing each bag's possible drops and probabilities (see [Loot Bag 2.6](../TUTORIAL/LOOT_BAG_en.md#26-viewing-drops-in-jei)). Requires JEI as well |
 | [Beyond Dimensions](https://modrinth.com/mod/beyonddimensions) `0.7+` | Optional | When forging, items stored in the player's **main network** can be consumed directly; the UI's craftable check and material counting include them too |
+| [Tom's Simple Storage](https://modrinth.com/mod/toms-storage) `2.10+` | Optional | When the forge touches an **Inventory Connector** or **Inventory Interface**, forging can consume items from that storage network directly; the UI's craftable check and material counting include them too (see [Equipment Forge · Material sources](../TUTORIAL/FORGE_en.md#material-sources)) |
+| Sophisticated Storage / Storage Drawers / Functional Storage / AE2 / Refined Storage / Create | Optional | When the forge touches their controllers or interfaces, their items can be used too (blocks and limits listed in [Equipment Forge · Material sources](../TUTORIAL/FORGE_en.md#material-sources)) |
 
 ---
 

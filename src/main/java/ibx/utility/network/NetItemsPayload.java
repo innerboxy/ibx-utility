@@ -10,7 +10,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
 
-/** 服务端 -> 客户端:玩家超越维度网络中的物品快照,供锻造界面的可制作检测与材料计数使用 */
+/** 服务端 -> 客户端:背包之外可用材料的快照(锻造台相邻存储 + 玩家超越维度网络),供锻造界面的可制作检测与材料计数使用 */
 public record NetItemsPayload(List<ItemStack> items) implements CustomPacketPayload {
     public static final Type<NetItemsPayload> TYPE =
             new Type<>(Identifier.fromNamespaceAndPath(IbxUtility.MODID, "net_items"));

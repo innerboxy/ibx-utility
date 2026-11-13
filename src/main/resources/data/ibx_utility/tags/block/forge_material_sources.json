@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "toms_storage:inventory_connector", "required": false },
+    { "id": "toms_storage:inventory_interface", "required": false },
+    { "id": "ae2:interface", "required": false },
+    { "id": "refinedstorage:interface", "required": false },
+    { "id": "storagedrawers:controller", "required": false },
+    { "id": "storagedrawers:controller_io", "required": false },
+    { "id": "storagedrawers:framed_controller", "required": false },
+    { "id": "storagedrawers:framed_controller_io", "required": false },
+    { "id": "functionalstorage:storage_controller", "required": false },
+    { "id": "functionalstorage:framed_storage_controller", "required": false },
+    { "id": "functionalstorage:controller_extension", "required": false },
+    { "id": "functionalstorage:framed_controller_extension", "required": false },
+    { "id": "sophisticatedstorage:controller", "required": false },
+    { "id": "sophisticatedstorage:storage_io", "required": false },
+    { "id": "sophisticatedstorage:storage_output", "required": false },
+    { "id": "create:item_vault", "required": false }
+  ]
+}

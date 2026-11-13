@@ -2,7 +2,6 @@ package ibx.utility.block;
 
 import com.mojang.serialization.MapCodec;
 import ibx.utility.menu.EquipmentForgeMenu;
-import ibx.utility.network.ModNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -51,9 +50,9 @@ public class EquipmentForgeBlock extends HorizontalDirectionalBlock {
                     (id, inventory, p) -> new EquipmentForgeMenu(id, inventory, ContainerLevelAccess.create(level, pos)),
                     TITLE
             ));
-            // 开界面时同步超越维度网络物品快照,供客户端可制作检测使用
-            if (player instanceof ServerPlayer serverPlayer) {
-                ModNetworking.syncNetItems(serverPlayer);
+            // 开界面时立即同步背包外材料快照(相邻存储 + 超越维度网络),供客户端可制作检测使用;之后由菜单每秒复查
+            if (player instanceof ServerPlayer serverPlayer && serverPlayer.containerMenu instanceof EquipmentForgeMenu menu) {
+                menu.syncNetItems(serverPlayer);
             }
         }
         return InteractionResult.SUCCESS;

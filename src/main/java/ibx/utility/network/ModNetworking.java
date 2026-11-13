@@ -1,7 +1,6 @@
 package ibx.utility.network;
 
 import ibx.utility.client.ClientLootBags;
-import ibx.utility.compat.beyonddimensions.BeyondDimensionsCompat;
 import ibx.utility.lootbag.LootBagTables;
 import ibx.utility.menu.EquipmentForgeMenu;
 import ibx.utility.recipe.EquipmentForgeRecipe;
@@ -43,14 +42,7 @@ public class ModNetworking {
         ClientLootBags.accept(payload.tables());
     }
 
-    /** 服务端:向玩家同步其超越维度网络的物品快照(未装 BD 时不发送) */
-    public static void syncNetItems(ServerPlayer player) {
-        if (BeyondDimensionsCompat.isLoaded()) {
-            PacketDistributor.sendToPlayer(player, new NetItemsPayload(BeyondDimensionsCompat.getStoredItems(player)));
-        }
-    }
-
-    /** 客户端:缓存超越维度物品快照到当前锻造菜单 */
+    /** 客户端:缓存背包外材料快照(相邻存储 + 超越维度网络)到当前锻造菜单 */
     private static void handleNetItems(NetItemsPayload payload, IPayloadContext context) {
         if (context.player().containerMenu instanceof EquipmentForgeMenu menu) {
             menu.setNetItems(payload.items());
@@ -64,15 +56,15 @@ public class ModNetworking {
 
         player.level().getServer().getRecipeManager().byKey(payload.recipeId()).ifPresent(holder -> {
             if (!(holder.value() instanceof EquipmentForgeRecipe recipe)) return;
-            if (!recipe.consume(player)) return;
+            if (!recipe.consume(player, menu.materialStorages())) return;
 
             // 背包能放多少放多少,放不下的掉落到地上(避免背包满时物品丢失)
             ItemStack result = recipe.result().create();
             player.getInventory().placeItemBackInInventory(result);
             player.level().playSound(null, player.blockPosition(),
                     SoundEvents.SMITHING_TABLE_USE, SoundSource.BLOCKS, 1.0f, 1.0f);
-            // 锻造可能消耗了网络中的物品,同步最新快照
-            syncNetItems(player);
+            // 锻造可能消耗了相邻存储或网络中的物品,同步最新快照
+            menu.syncNetItems(player);
         });
     }
 }

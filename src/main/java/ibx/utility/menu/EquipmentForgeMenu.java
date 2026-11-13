@@ -1,18 +1,27 @@
 package ibx.utility.menu;
 
+import ibx.utility.compat.beyonddimensions.BeyondDimensionsCompat;
+import ibx.utility.network.NetItemsPayload;
+import ibx.utility.recipe.ForgeMaterialSources;
 import ibx.utility.registry.ModBlocks;
 import ibx.utility.registry.ModMenus;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
- * 装备锻造台菜单:无机器格子,材料直接读取玩家背包。
+ * 装备锻造台菜单:无机器格子,材料读取玩家背包、相邻存储与超越维度网络。
  * 下半部分展示玩家背包(槽位 0-26)与快捷栏(槽位 27-35)。
  */
 public class EquipmentForgeMenu extends AbstractContainerMenu {
@@ -20,11 +29,17 @@ public class EquipmentForgeMenu extends AbstractContainerMenu {
     public static final int INV_X = 8;
     public static final int INV_Y = 144;
     public static final int HOTBAR_Y = 202;
+    /** 服务端每隔多少 tick 重算一次背包外材料快照(存储可能被漏斗、其他玩家改动) */
+    private static final int SYNC_INTERVAL = 20;
 
     public final Inventory playerInventory;
     private final ContainerLevelAccess access;
-    /** 客户端缓存:超越维度网络中的物品快照,由服务端在开界面和锻造后通过 NetItemsPayload 同步 */
+    /**
+     * 客户端缓存:背包之外可用材料的快照(相邻存储 + 超越维度网络),由服务端通过 NetItemsPayload 同步。
+     * 服务端则记录上次发出的快照,内容不变时不重发。
+     */
     private List<ItemStack> netItems = List.of();
+    private int syncTimer;
 
     /** 客户端构造 */
     public EquipmentForgeMenu(int containerId, Inventory playerInventory) {
@@ -55,6 +70,44 @@ public class EquipmentForgeMenu extends AbstractContainerMenu {
 
     public void setNetItems(List<ItemStack> items) {
         this.netItems = items;
+    }
+
+    /** 服务端:锻造台相邻的材料存储(见 {@link ForgeMaterialSources}) */
+    public List<ResourceHandler<ItemResource>> materialStorages() {
+        return access.evaluate(ForgeMaterialSources::find, List.of());
+    }
+
+    /**
+     * 服务端:重算背包之外可用材料的快照(相邻存储 + 超越维度网络,只保留锻造材料用得到的物品),
+     * 与上次发出的不同才发给客户端。
+     */
+    public void syncNetItems(ServerPlayer player) {
+        Predicate<ItemStack> filter = ForgeMaterialSources.materialFilter(player.level());
+        List<ItemStack> items = new ArrayList<>(ForgeMaterialSources.snapshot(materialStorages(), filter));
+        for (ItemStack stack : BeyondDimensionsCompat.getStoredItems(player)) {
+            if (filter.test(stack)) items.add(stack);
+        }
+        if (sameStacks(items, netItems)) return;
+        netItems = items;
+        PacketDistributor.sendToPlayer(player, new NetItemsPayload(items));
+    }
+
+    /** 两个列表逐项物品、组件、数量都相同 */
+    private static boolean sameStacks(List<ItemStack> left, List<ItemStack> right) {
+        if (left.size() != right.size()) return false;
+        for (int i = 0; i < left.size(); i++) {
+            if (!ItemStack.matches(left.get(i), right.get(i))) return false;
+        }
+        return true;
+    }
+
+    @Override
+    public void broadcastChanges() {
+        super.broadcastChanges();
+        if (playerInventory.player instanceof ServerPlayer player && ++syncTimer >= SYNC_INTERVAL) {
+            syncTimer = 0;
+            syncNetItems(player);
+        }
     }
 
     @Override

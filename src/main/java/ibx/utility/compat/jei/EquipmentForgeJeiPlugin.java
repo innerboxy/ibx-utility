@@ -32,6 +32,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.storage.loot.LootTable;
+import net.neoforged.fml.ModList;
 
 import java.util.Comparator;
 import java.util.List;
@@ -159,11 +160,15 @@ public class EquipmentForgeJeiPlugin implements IModPlugin {
 
     @Override
     public void registerGuiHandlers(IGuiHandlerRegistration registration) {
-        // 左侧分类子标签突出在 GUI 之外,让 JEI 书签面板避开这块区域
+        // 左侧分类子标签突出在 GUI 之外,让 JEI 书签面板避开这块区域;
+        // 装了 IPN 时,右侧外竖排的整理按钮也让 JEI 物品列表避开
+        boolean ipnLoaded = ModList.get().isLoaded("inventoryprofilesnext");
         registration.addGuiContainerHandler(EquipmentForgeScreen.class, new IGuiContainerHandler<>() {
             @Override
             public List<Rect2i> getGuiExtraAreas(EquipmentForgeScreen screen) {
-                return List.of(screen.getTabArea());
+                return ipnLoaded
+                        ? List.of(screen.getTabArea(), screen.getIpnButtonArea())
+                        : List.of(screen.getTabArea());
             }
         });
     }

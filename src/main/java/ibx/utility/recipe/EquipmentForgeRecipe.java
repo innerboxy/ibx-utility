@@ -27,13 +27,16 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.common.crafting.SizedIngredient;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * 装备锻造配方:材料直接取自玩家背包(主背包 + 副手),不占用容器格子。
+ * 装备锻造配方:材料取自玩家背包(主背包 + 副手)、锻造台相邻存储与超越维度网络,不占用容器格子。
  * 数据包格式见 README,内置配方在 data/ibx_utility/recipe/equipment_forge/ 下。
  */
 public class EquipmentForgeRecipe implements Recipe<RecipeInput> {
@@ -69,7 +72,7 @@ public class EquipmentForgeRecipe implements Recipe<RecipeInput> {
     }
 
     /**
-     * 可用作材料的物品:主背包 + 副手,再接上 extraStacks(如超越维度网络快照),按消耗优先级排列。
+     * 可用作材料的物品:主背包 + 副手,再接上 extraStacks(相邻存储与超越维度网络的快照),按消耗优先级排列。
      * 26.1 起副手不再是 Inventory 的公开列表,而是装备槽里的一格。背包部分是槽内实物,可直接扣减。
      */
     public static List<ItemStack> availableStacks(Inventory inventory, List<ItemStack> extraStacks) {
@@ -79,7 +82,7 @@ public class EquipmentForgeRecipe implements Recipe<RecipeInput> {
         return stacks;
     }
 
-    /** 背包(主背包 + 副手)与额外物品列表(如超越维度网络快照)中与该材料匹配的物品总数 */
+    /** 背包(主背包 + 副手)与额外物品列表(相邻存储与超越维度网络的快照)中与该材料匹配的物品总数 */
     public static int countMatching(Inventory inventory, List<ItemStack> extraStacks, Ingredient ingredient) {
         long total = 0;
         for (ItemStack stack : availableStacks(inventory, extraStacks)) {
@@ -88,7 +91,7 @@ public class EquipmentForgeRecipe implements Recipe<RecipeInput> {
         return (int) Math.min(total, Integer.MAX_VALUE);
     }
 
-    /** 材料是否全部足够,extraStacks 为背包之外可用的物品(如超越维度网络快照) */
+    /** 材料是否全部足够,extraStacks 为背包之外可用的物品(相邻存储与超越维度网络的快照) */
     public boolean canCraft(Inventory inventory, List<ItemStack> extraStacks) {
         // 在副本上逐项扣减,避免两种材料匹配同一批物品时重复计数
         List<ItemStack> snapshot = availableStacks(inventory, extraStacks).stream()
@@ -103,18 +106,45 @@ public class EquipmentForgeRecipe implements Recipe<RecipeInput> {
 
     /**
      * 服务端:校验并消耗材料,成功返回 true(失败不消耗任何物品)。
-     * 背包(主背包 + 副手)优先,不足部分从玩家的超越维度网络提取。
+     * 扣除顺序:背包(主背包 + 副手) → 锻造台相邻存储(见 {@link ForgeMaterialSources})→ 玩家的超越维度网络。
+     * <p>先在背包与网络快照的副本上、以及相邻存储的事务里试扣全部材料,够了才提交事务并真正扣背包与网络;
+     * 相邻存储实际取不够(如两个连接器连着同一网络、快照重复计数)时事务回滚,什么都不扣。
      */
-    public boolean consume(Player player) {
+    public boolean consume(Player player, List<ResourceHandler<ItemResource>> storages) {
         Inventory inventory = player.getInventory();
-        List<ItemStack> netItems = BeyondDimensionsCompat.getStoredItems(player);
-        if (!canCraft(inventory, netItems)) return false;
+        List<ItemStack> inventoryPlan = copies(availableStacks(inventory, List.of()));
+        List<ItemStack> netPlan = copies(BeyondDimensionsCompat.getStoredItems(player));
+        int[] fromInventory = new int[materials.size()];
+        int[] fromNet = new int[materials.size()];
+        try (Transaction transaction = Transaction.openRoot()) {
+            for (int i = 0; i < materials.size(); i++) {
+                SizedIngredient material = materials.get(i);
+                int needed = material.count();
+                fromInventory[i] = shrinkMatching(inventoryPlan, material.ingredient(), needed);
+                needed -= fromInventory[i];
+                if (needed > 0) {
+                    needed -= ForgeMaterialSources.extractMatching(storages, material.ingredient(), needed, transaction);
+                }
+                if (needed > 0) {
+                    fromNet[i] = shrinkMatching(netPlan, material.ingredient(), needed);
+                    needed -= fromNet[i];
+                }
+                if (needed > 0) return false; // 未提交的事务在关闭时回滚
+            }
+            transaction.commit();
+        }
+        // 按与试扣相同的顺序扣背包实物,结果与副本上的一致
         List<ItemStack> inventoryStacks = availableStacks(inventory, List.of());
-        for (SizedIngredient material : materials) {
-            int needed = material.count() - shrinkMatching(inventoryStacks, material.ingredient(), material.count());
-            if (needed > 0) BeyondDimensionsCompat.extractMatching(player, material.ingredient(), needed);
+        for (int i = 0; i < materials.size(); i++) {
+            Ingredient ingredient = materials.get(i).ingredient();
+            shrinkMatching(inventoryStacks, ingredient, fromInventory[i]);
+            if (fromNet[i] > 0) BeyondDimensionsCompat.extractMatching(player, ingredient, fromNet[i]);
         }
         return true;
+    }
+
+    private static List<ItemStack> copies(List<ItemStack> stacks) {
+        return stacks.stream().filter(stack -> !stack.isEmpty()).map(ItemStack::copy).toList();
     }
 
     /** 从 stacks 中就地扣减至多 needed 个匹配物品,返回实际扣减数 */

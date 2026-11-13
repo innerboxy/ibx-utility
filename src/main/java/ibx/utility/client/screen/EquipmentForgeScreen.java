@@ -51,12 +51,31 @@ import java.util.Set;
 /*
  * Inventory Profiles Next 联动:菜单里只有玩家背包槽(左栏装备格是自绘的,不是 Slot),
  * IPN 默认会把它当容器界面,在右上角铭牌处画出容器侧的整理按钮。
- * 只保留玩家背包侧的整理按钮,并隐藏无意义的"全部移入/移出容器"。没装 IPN 时这些注解被忽略。
+ * 标成只有玩家背包侧,并隐藏无意义的"全部移入/移出容器"。没装 IPN 时这些注解被忽略。
+ *
+ * 三个整理按钮(整理 / 按列 / 按行)默认横排在背包右上角,正好压在产物座上,这里把它们竖排到 GUI 右侧外:
+ *   x = 178..187(右边框外留 2px,与 IPN 按钮间距相同),y 依次为 130..140 / 142..152 / 154..164
+ *   (第一个比原高度再高 2px,往下每个 12px)。见 {@link #IPN_BUTTONS_X} 等常量,JEI 也据此避让。
+ * IPN 在这个界面走的是"只有一侧"的分支,用的是普通 SORT* 按钮(不是 *_PLAYER),摆放方式为
+ *   setBottomRight(bottom = 85 + hint.bottom, right = 基准 + hint.horizontalOffset),
+ *   基准 right 从 7 起、按行 / 按列 / 整理依次 +12(即 7 / 19 / 31),bottom、right 都是到 GUI 下 / 右边的距离;
+ *   按钮 10x10。目标 right = 176 - 188 = -12,故 horizontalOffset = -12 - 基准;
+ *   目标底边 140 / 152 / 164,即 bottom = 227 - 底边 = 87 / 75 / 63,故 hint.bottom = 2 / -10 / -22。
+ * 若玩家在 IPN 设置里关掉了某个整理按钮,它左边按钮的基准会少 12,位置会随之右移,这是 IPN 提示机制本身的限制。
  */
 @IPNPlayerSideOnly
 @IPNGuiHint(button = IPNButton.MOVE_TO_CONTAINER, hide = true)
 @IPNGuiHint(button = IPNButton.MOVE_TO_PLAYER, hide = true)
+@IPNGuiHint(button = IPNButton.SORT, horizontalOffset = -43, bottom = 2)
+@IPNGuiHint(button = IPNButton.SORT_COLUMNS, horizontalOffset = -31, bottom = -10)
+@IPNGuiHint(button = IPNButton.SORT_ROWS, horizontalOffset = -19, bottom = -22)
 public class EquipmentForgeScreen extends AbstractContainerScreen<EquipmentForgeMenu> {
+    /** IPN 整理按钮竖排列在 GUI 右侧外的区域(相对 GUI 左上角),与类注解里的 IPN 提示对应 */
+    private static final int IPN_BUTTONS_X = 178;
+    private static final int IPN_BUTTONS_Y = 130;
+    private static final int IPN_BUTTONS_W = 10;
+    private static final int IPN_BUTTONS_H = 3 * 12 - 2;
+
     /*
      * 布局:整体 176 宽(与原版 GUI 一致,仅比 162 的背包栏稍宽)。
      * 左栏(搜索框 + 装备选择)与右栏(铭牌 + 所需材料 + 锻造行)各 74px,左右对称:
@@ -666,6 +685,11 @@ public class EquipmentForgeScreen extends AbstractContainerScreen<EquipmentForge
                 ? tabDownButtonY() + TAB_PAGE_BTN_H - TAB_Y0
                 : tabs.size() * (TAB_SIZE + TAB_GAP) - TAB_GAP;
         return new Rect2i(leftPos - TAB_SIZE, topPos + TAB_Y0, TAB_SIZE + 1, height);
+    }
+
+    /** IPN 整理按钮竖排占用的 GUI 右侧外区域,供 JEI 避让(调用方自行判断是否装了 IPN) */
+    public Rect2i getIpnButtonArea() {
+        return new Rect2i(leftPos + IPN_BUTTONS_X, topPos + IPN_BUTTONS_Y, IPN_BUTTONS_W, IPN_BUTTONS_H);
     }
 
     /** 鼠标所在的分类标签下标(tabs 中的绝对下标),不在标签上返回 -1 */

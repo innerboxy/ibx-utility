@@ -12,7 +12,7 @@ This mod adds an **Equipment Forge** (`ibx_utility:equipment_forge`) — a craft
 
 ### Key features
 
-- **Materials taken straight from your inventory**: the forge has no crafting grid; materials are deducted from the player's main inventory + offhand, so there is no shuffling items back and forth.
+- **Materials taken straight from your inventory**: the forge has no crafting grid; materials are deducted from the player's main inventory + offhand, or from a storage network next to the forge (see [Material sources](#material-sources)), so there is no shuffling items back and forth.
 - **List-style interface**: on the left, category tabs + a search box + an item grid; on the right, the required materials and a craft button for the selected recipe.
   - Modeled on the vanilla recipe book: craftable items show as bright slots, items you lack materials for show as dark slots.
   - A search box to filter items by name.
@@ -21,6 +21,42 @@ This mod adds an **Equipment Forge** (`ibx_utility:equipment_forge`) — a craft
 - **Data-driven categories**: the left-hand category tabs are defined entirely by the data pack; modpacks are free to add, remove, or change them (see [3](#3-category-definitions)).
 - **Optionally remove vanilla recipes**: the vanilla crafting-table / smithing recipes superseded by the forge can be removed together via config, enabled by default (see [Configuration](CONFIG_en.md)).
 - **No items lost when the inventory is full**: products that don't fit are dropped at the player's feet.
+
+### Material sources
+
+When forging, materials are deducted in this order, and the UI's craftable check and material counts include all of them:
+
+1. The player's main inventory + offhand;
+2. **Storage next to the forge**: blocks touching any of the forge's six faces that are in the block tag `ibx_utility:forge_material_sources` (see the table below);
+3. The player's Beyond Dimensions **main network** (when Beyond Dimensions is installed).
+
+Blocks in the default tag (skipped automatically when their mod is not installed):
+
+| Mod | Blocks | What the forge can use |
+| --- | --- | --- |
+| [Tom's Simple Storage](https://modrinth.com/mod/toms-storage) | Inventory Connector, Inventory Interface | The whole storage network. Place the forge against an Inventory Connector, or put an Inventory Interface on the cable network touching the forge |
+| [Sophisticated Storage](https://modrinth.com/mod/sophisticated-storage) | Storage Controller, Storage I/O, Storage Output | Every chest, barrel, etc. linked to the controller |
+| [Storage Drawers](https://modrinth.com/mod/storagedrawers) | Drawer Controller, Drawer Controller IO (incl. framed variants) | Every drawer connected to the controller |
+| [Functional Storage](https://modrinth.com/mod/functional-storage) | Storage Controller, Controller Access Point (incl. framed variants) | Every drawer connected to the controller |
+| [Applied Energistics 2](https://modrinth.com/mod/ae2) (AE2) | ME Interface | **Only the items stocked in the interface itself**, not the whole ME network. Configure the interface to keep the materials in stock |
+| [Refined Storage](https://modrinth.com/mod/refined-storage) (RS) | Interface | **Only the items in the interface's export slots**, not the whole network. Configure the interface to export the materials |
+| [Create](https://modrinth.com/mod/create) | Item Vault | The whole vault (merged multiblock). Create has no 26.1 release yet; this entry is reserved for when it is ported |
+
+If the materials are not all available, nothing is deducted. When stored contents change, an open forge screen updates within one second.
+
+Modpacks can add other blocks that expose an item capability (barrels, other storage mods' interfaces, …) to the tag via a data pack, or turn adjacent storage off by writing an empty tag with `"replace": true`:
+
+```json
+// data/ibx_utility/tags/block/forge_material_sources.json
+{
+  "replace": false,
+  "values": [
+    "minecraft:barrel"
+  ]
+}
+```
+
+> The default tag deliberately leaves out ordinary containers such as chests and furnaces, so forging never eats furnace fuel or items a hopper is passing through.
 
 ### How to obtain
 

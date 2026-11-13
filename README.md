@@ -55,6 +55,8 @@
 | [JEI](https://www.curseforge.com/minecraft/mc-mods/jei) `19+` | 可选(客户端) | 提供「装备锻造」「制箭台」配方查询分类;在锻造台界面点击 JEI 的「+」可直接跳转选中该配方,在制箭台界面点击「+」可自动填入材料 |
 | [JustEnoughResources](https://modrinth.com/mod/just-enough-resources-jer) `1.6+`(JER) | 可选(客户端) | 提供「战利品袋」分类,展示每个袋子的可能掉落与概率(见 [战利品袋 2.6](TUTORIAL/LOOT_BAG.md#26-在-jei-中查看掉落))。需同时装 JEI |
 | [Beyond Dimensions](https://modrinth.com/mod/beyonddimensions) `0.7+`(超越维度) | 可选 | 锻造时可直接消耗玩家**主网络**中存储的物品,界面的可合成判定与材料计数也会计入 |
+| [Tom's Simple Storage](https://modrinth.com/mod/toms-storage) `2.10+`(汤姆的简单存储) | 可选 | 锻造台紧贴**存储连接器**或**存储接口**时,锻造可直接消耗该存储网络中的物品,界面的可合成判定与材料计数也会计入(见 [装备锻造台 · 材料来源](TUTORIAL/FORGE.md#材料来源)) |
+| 精妙存储 / 储物抽屉 / 功能性存储 / AE2 / 精致存储 / 机械动力 | 可选 | 锻造台紧贴它们的控制器或接口时,同样可以使用其中的物品(各方块与限制见 [装备锻造台 · 材料来源](TUTORIAL/FORGE.md#材料来源)) |
 
 > 拼音检索所需的 pinyin4j 已通过 jarJar 打包进模组,无需额外安装。
 
