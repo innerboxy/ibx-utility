@@ -26,7 +26,7 @@ import java.util.Optional;
  * {
  *   "name": { "translate": "quest.example.wolf_hunt" },
  *   "description": { "translate": "quest.example.wolf_hunt.desc" },   // 可选
- *   "icon": "minecraft:bone",                                        // 可选,默认 minecraft:book
+ *   "icon": "minecraft:bone",                                        // 可选,默认 minecraft:book;也可以写图片路径 "example:textures/quest/wolf.png"
  *   "category": "example:hunting",                                   // 悬赏板分页 id
  *   "pool": "fixed",                                                 // 可选,fixed(默认)/ random
  *   "weight": 1,                                                     // 可选,随机池里的权重,默认 1
@@ -35,10 +35,11 @@ import java.util.Optional;
  *   "team": { "max": 4 },                                            // 可选,写了才能组队
  *   "objectives": [ { "type": "ibx_utility:kill", "entity": "minecraft:wolf", "count": 5 } ],
  *   "rewards": [ { "type": "ibx_utility:item", "item": { "id": "minecraft:emerald", "count": 3 } } ],
- *   "actions": { "accept": [], "submit": [], "abandon": [] }         // 可选,别的模组注册的动作
+ *   "actions": { "accept": [], "depart": [], "submit": [], "abandon": [] }   // 可选,别的模组注册的动作;写了 depart 就是要出发的任务
  * }
  * </pre>
  *
+ * @param icon     物品 id,或者以 .png 结尾的图片路径(资源包里的完整路径,画的时候整张缩到 16×16)
  * @param category 悬赏板分页({@code category/quest_board} 里的 id);那页不存在(写错了、或配置里关掉了)时整个任务跳过,当作没有
  * @param weight   只对随机池有用
  * @param team     空 = 只能一个人做
@@ -75,7 +76,12 @@ public record QuestDefinition(
             QuestActions.CODEC.optionalFieldOf("actions", QuestActions.NONE).forGetter(QuestDefinition::actions)
     ).apply(instance, QuestDefinition::new));
 
-    /** 悬赏板目录、追踪栏用的图标;icon 物品不存在(如未装对应模组)时回退为书 */
+    /** icon 写的是图片路径(以 .png 结尾)而不是物品 id;客户端画图标走 DataIcons */
+    public boolean hasTextureIcon() {
+        return icon.getPath().endsWith(".png");
+    }
+
+    /** 图标物品;icon 物品不存在(如未装对应模组)、或者写的是图片路径时回退为书 */
     public ItemStack iconStack() {
         Item item = BuiltInRegistries.ITEM.getOptional(icon)
                 .filter(i -> i != Items.AIR)

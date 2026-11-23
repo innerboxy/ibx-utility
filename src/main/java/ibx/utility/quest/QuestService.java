@@ -2,6 +2,7 @@ package ibx.utility.quest;
 
 import ibx.utility.api.event.QuestEvent;
 import ibx.utility.config.Config;
+import ibx.utility.network.QuestNetworking;
 import ibx.utility.quest.action.QuestAction;
 import ibx.utility.quest.objective.QuestObjective;
 import ibx.utility.quest.requirement.QuestRequirement;
@@ -9,6 +10,7 @@ import ibx.utility.quest.reward.QuestReward;
 import ibx.utility.quest.state.ActiveQuest;
 import ibx.utility.quest.state.DailyQuests;
 import ibx.utility.quest.state.PlayerQuests;
+import ibx.utility.quest.state.QuestDepartures;
 import ibx.utility.quest.state.QuestProgress;
 import ibx.utility.quest.state.QuestTeams;
 import ibx.utility.registry.ModRegistries;
@@ -19,9 +21,11 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.portal.TeleportTransition;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -36,9 +40,10 @@ import java.util.function.ToIntFunction;
 import java.util.stream.Stream;
 
 /**
- * 任务的服务端逻辑:接、加入队伍、放弃、提交、加进度(击杀计数也走这里)、每日随机,沿路发 QuestEvent。
+ * 任务的服务端逻辑:接、加入队伍、准备、出发、放弃、移出队伍、提交、加进度(击杀计数也走这里)、每日随机,沿路发 QuestEvent。
  * 悬赏板界面和对外接口 QuestApi 都走这里。
  * 组队任务的进度以队伍里的为准(QuestTeams),每次变化抄给在线成员,追踪栏统一只读玩家自己的数据。
+ * 队伍、准备、出门名单变了就叫开着悬赏板的人刷新(QuestNetworking.markDirty)。
  */
 public final class QuestService {
     public enum AcceptResult {
@@ -69,6 +74,48 @@ public final class QuestService {
         TOO_MANY,
         /** 别的模组在加入事件里取消了 */
         CANCELLED
+    }
+
+    public enum ReadyResult {
+        /** 点了准备 */
+        READY,
+        /** 取消了准备 */
+        UNREADY,
+        NOT_ACTIVE,
+        /** 不是要出发的任务 */
+        NO_DEPARTURE,
+        /** 个人任务不用准备 */
+        NOT_TEAM,
+        /** 发起人不用准备,直接出发 */
+        LEADER,
+        /** 已经有人出发了,不用准备,自己点出发进去 */
+        IN_PROGRESS
+    }
+
+    public enum DepartResult {
+        DEPARTED,
+        NOT_ACTIVE,
+        /** 不是要出发的任务 */
+        NO_DEPARTURE,
+        /** 开局只有发起人能点 */
+        NOT_LEADER,
+        /** 自己已经在外面了 */
+        ALREADY_AWAY,
+        /** 别的模组在出发事件里取消了 */
+        CANCELLED,
+        /** 点的这个人的 depart 动作说没走成(同一批里别人可能走成了) */
+        FAILED
+    }
+
+    public enum KickResult {
+        KICKED,
+        NOT_ACTIVE,
+        /** 个人任务没有队伍 */
+        NOT_TEAM,
+        /** 只有发起人能移人 */
+        NOT_LEADER,
+        /** 不是这支队伍里的别人(不在队里,或者是他自己) */
+        NOT_MEMBER
     }
 
     public enum SubmitResult {
@@ -178,10 +225,11 @@ public final class QuestService {
         data.start(key, objectives, player.level().getGameTime(), team);
         PlayerQuests.sync(player);
         runActions(player, quest, definition.actions().accept());
+        changed();
         return AcceptResult.ACCEPTED;
     }
 
-    /** 加入别人的队伍。一次性任务做过的人也能加入,提交时照样拿奖励、记完成 */
+    /** 加入别人的队伍。一次性任务做过的人也能加入,提交时照样拿奖励、记完成。队里原来没人在线的话,他接过发起人 */
     public static JoinResult join(ServerPlayer player, UUID teamId) {
         QuestTeams teams = QuestTeams.get(player.level().getServer());
         QuestTeams.Team team = teams.get(teamId);
@@ -209,17 +257,154 @@ public final class QuestService {
         }
         int objectives = definition.objectives().size();
         team.addMember(player.getUUID());
+        ensureOnlineLeader(player.level().getServer(), team, null);
         data.start(team.quest(), objectives, player.level().getGameTime(), teamId).copyFrom(team, objectives);
         PlayerQuests.sync(player);
         runActions(player, quest, definition.actions().accept());
+        changed();
         return JoinResult.JOINED;
     }
 
-    /** 放弃:进度清零、没有惩罚;组队任务就是退队。没接着返回 false */
+    /** 这个已接任务的出门名单是哪一组:组队的按队伍,个人的按玩家自己 */
+    private static QuestDepartures.Group group(ResourceKey<QuestDefinition> quest, ActiveQuest active, UUID player) {
+        return new QuestDepartures.Group(quest, active.team() != null ? active.team() : player);
+    }
+
+    /**
+     * 准备 / 取消准备:要出发的组队任务里,发起人以外的队员在开局前点。点了就算,走开也算;
+     * 发起人出发时带上准备好、在线的人。已经有人出发了就不用准备(自己点出发进去)
+     */
+    public static ReadyResult toggleReady(ServerPlayer player, ResourceKey<QuestDefinition> key) {
+        ActiveQuest active = PlayerQuests.get(player).active(key);
+        Optional<Holder.Reference<QuestDefinition>> quest = lookup(player.level(), key);
+        if (active == null || quest.isEmpty()) {
+            return ReadyResult.NOT_ACTIVE;
+        }
+        if (!quest.get().value().actions().hasDeparture()) {
+            return ReadyResult.NO_DEPARTURE;
+        }
+        if (active.team() == null) {
+            return ReadyResult.NOT_TEAM;
+        }
+        QuestTeams.Team team = QuestTeams.get(player.level().getServer()).get(active.team());
+        if (team == null) {
+            return ReadyResult.NOT_ACTIVE;
+        }
+        if (team.leader().equals(player.getUUID())) {
+            return ReadyResult.LEADER;
+        }
+        if (!QuestDepartures.away(group(key, active, player.getUUID())).isEmpty()) {
+            return ReadyResult.IN_PROGRESS;
+        }
+        boolean ready = QuestDepartures.toggleReady(team.id(), player.getUUID());
+        changed();
+        return ready ? ReadyResult.READY : ReadyResult.UNREADY;
+    }
+
+    /**
+     * 出发。这一组还没人在外面时是开局:只有发起人能点,带上他自己和准备好、在线的队员(个人任务就是自己);
+     * 已经有人在外面时,队里不在外面的人自己点,只带自己。发出发事件,没被取消就记进出门名单、清空准备、
+     * 对每个走的人跑 depart 动作:走成了的关掉他开着的悬赏板;哪个动作返回 false 就是这个人没走成,
+     * 后面的动作不再对他跑,把他从出门名单里划掉
+     */
+    public static DepartResult depart(ServerPlayer player, ResourceKey<QuestDefinition> key) {
+        ActiveQuest active = PlayerQuests.get(player).active(key);
+        Optional<Holder.Reference<QuestDefinition>> found = lookup(player.level(), key);
+        if (active == null || found.isEmpty()) {
+            return DepartResult.NOT_ACTIVE;
+        }
+        Holder.Reference<QuestDefinition> quest = found.get();
+        if (!quest.value().actions().hasDeparture()) {
+            return DepartResult.NO_DEPARTURE;
+        }
+        MinecraftServer server = player.level().getServer();
+        QuestDepartures.Group group = group(key, active, player.getUUID());
+        List<UUID> away = QuestDepartures.away(group);
+        if (away.contains(player.getUUID())) {
+            return DepartResult.ALREADY_AWAY;
+        }
+        QuestTeams.Team team = active.team() == null ? null : QuestTeams.get(server).get(active.team());
+        boolean opening = away.isEmpty();
+        List<ServerPlayer> departing = new ArrayList<>();
+        departing.add(player);
+        if (opening && team != null) {
+            if (!team.leader().equals(player.getUUID())) {
+                return DepartResult.NOT_LEADER;
+            }
+            for (UUID member : team.members()) {
+                ServerPlayer online = server.getPlayerList().getPlayer(member);
+                if (online != null && online != player && QuestDepartures.isReady(team.id(), member)) {
+                    departing.add(online);
+                }
+            }
+        }
+        UUID teamId = team == null ? null : team.id();
+        if (NeoForge.EVENT_BUS.post(new QuestEvent.Depart(player, quest, departing, teamId, opening)).isCanceled()) {
+            return DepartResult.CANCELLED;
+        }
+        QuestDepartures.addAway(group, departing.stream().map(ServerPlayer::getUUID).toList());
+        if (teamId != null) {
+            QuestDepartures.clearReady(teamId);
+        }
+        boolean failed = false;
+        for (ServerPlayer going : departing) {
+            if (runDepartActions(going, quest)) {
+                QuestNetworking.closeBoard(going);
+            } else {
+                QuestDepartures.removeAway(key, going.getUUID());
+                failed |= going == player;
+            }
+        }
+        changed();
+        return failed ? DepartResult.FAILED : DepartResult.DEPARTED;
+    }
+
+    /** 对这个人跑 depart 动作,碰到返回 false 的就停;返回走没走成 */
+    private static boolean runDepartActions(ServerPlayer player, Holder.Reference<QuestDefinition> quest) {
+        for (QuestAction action : quest.value().actions().depart()) {
+            if (!action.run(player, quest)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** 回来了:从这个任务的出门名单里划掉;一组人都回来了,下次要发起人重新开局。返回他本来在不在外面 */
+    public static boolean markReturned(ServerPlayer player, ResourceKey<QuestDefinition> key) {
+        boolean removed = QuestDepartures.removeAway(key, player.getUUID());
+        if (removed) {
+            changed();
+        }
+        return removed;
+    }
+
+    /** 这个人在不在这个任务的外面(出发了还没回来) */
+    public static boolean isAway(ServerPlayer player, ResourceKey<QuestDefinition> key) {
+        ActiveQuest active = PlayerQuests.get(player).active(key);
+        return active != null && QuestDepartures.isAway(group(key, active, player.getUUID()), player.getUUID());
+    }
+
+    /** 跟这个人同一组、出发了还没回来的人(组队的是全队,个人的是他自己),按出发先后;没接是空 */
+    public static List<UUID> awayPlayers(ServerPlayer player, ResourceKey<QuestDefinition> key) {
+        ActiveQuest active = PlayerQuests.get(player).active(key);
+        return active == null ? List.of() : QuestDepartures.away(group(key, active, player.getUUID()));
+    }
+
+    /** 叫开着悬赏板的人刷新 */
+    private static void changed() {
+        QuestNetworking.markDirty();
+    }
+
+    /** 放弃:进度清零、没有惩罚;组队任务就是退队。人这时还在外面(出发了没回来)的话召回。没接着返回 false */
     public static boolean abandon(ServerPlayer player, ResourceKey<QuestDefinition> key) {
+        return abandon(player, key, QuestEvent.Recall.Reason.ABANDONED);
+    }
+
+    private static boolean abandon(ServerPlayer player, ResourceKey<QuestDefinition> key, QuestEvent.Recall.Reason reason) {
         if (!PlayerQuests.get(player).isActive(key)) {
             return false;
         }
+        boolean away = isAway(player, key);
         Optional<Holder.Reference<QuestDefinition>> quest = lookup(player.level(), key);
         quest.ifPresent(q -> NeoForge.EVENT_BUS.post(new QuestEvent.Abandon(player, q)));
         ActiveQuest removed = PlayerQuests.get(player).remove(key);
@@ -228,17 +413,98 @@ public final class QuestService {
         }
         if (removed.team() != null) {
             leaveTeam(player.level().getServer(), removed.team(), player.getUUID());
+        } else {
+            QuestDepartures.clear(new QuestDepartures.Group(key, player.getUUID()));
         }
         PlayerQuests.sync(player);
         quest.ifPresent(q -> runActions(player, q, q.value().actions().abandon()));
+        if (away) {
+            recall(player, quest, reason);
+        }
+        changed();
         return true;
     }
 
+    /**
+     * 召回一个还在外面、却已经不在做这个任务的人:发召回事件,没被取消就送回重生点(做法同原版从末地回来,
+     * 不耗重生锚的充能)。正死着的人不传,他复活时本来就在重生点
+     */
+    private static void recall(ServerPlayer player, Optional<Holder.Reference<QuestDefinition>> quest, QuestEvent.Recall.Reason reason) {
+        if (quest.isPresent() && NeoForge.EVENT_BUS.post(new QuestEvent.Recall(player, quest.get(), reason)).isCanceled()) {
+            return;
+        }
+        if (player.isDeadOrDying()) {
+            return;
+        }
+        player.stopRiding();
+        player.teleport(player.findRespawnPositionAndUseSpawnBlock(false, TeleportTransition.DO_NOTHING));
+    }
+
+    /**
+     * 发起人把一个队员移出队伍,等同那个人自己放弃:在线的当场走一遍放弃(放弃事件、abandon 动作);
+     * 不在线的先从队伍里去掉,他下次上线时再走放弃。出发了还没回来的人也能移:从出门名单里划掉,
+     * 然后召回(发召回事件,没被取消就送回重生点)
+     */
+    public static KickResult kick(ServerPlayer leader, ResourceKey<QuestDefinition> key, UUID target) {
+        MinecraftServer server = leader.level().getServer();
+        ActiveQuest active = PlayerQuests.get(leader).active(key);
+        if (active == null) {
+            return KickResult.NOT_ACTIVE;
+        }
+        if (active.team() == null) {
+            return KickResult.NOT_TEAM;
+        }
+        QuestTeams.Team team = QuestTeams.get(server).get(active.team());
+        if (team == null) {
+            return KickResult.NOT_ACTIVE;
+        }
+        if (!team.leader().equals(leader.getUUID())) {
+            return KickResult.NOT_LEADER;
+        }
+        if (target.equals(leader.getUUID()) || !team.hasMember(target)) {
+            return KickResult.NOT_MEMBER;
+        }
+        ServerPlayer online = server.getPlayerList().getPlayer(target);
+        if (online != null) {
+            abandon(online, key, QuestEvent.Recall.Reason.KICKED);
+        } else {
+            leaveTeam(server, team.id(), target);
+            changed();
+        }
+        return KickResult.KICKED;
+    }
+
+    /** 退队:顺带从准备、出门名单里去掉;发起人走了换最早加入、还在线的队员(都不在线就先给最早加入的);队伍空了解散 */
     private static void leaveTeam(MinecraftServer server, UUID teamId, UUID player) {
         QuestTeams teams = QuestTeams.get(server);
         QuestTeams.Team team = teams.get(teamId);
-        if (team != null && team.removeMember(player)) {
+        if (team == null) {
+            return;
+        }
+        QuestDepartures.removeReady(teamId, player);
+        QuestDepartures.removeAway(team.quest(), player);
+        if (team.removeMember(player)) {
             teams.remove(teamId);
+            QuestDepartures.clear(new QuestDepartures.Group(team.quest(), teamId));
+        } else {
+            ensureOnlineLeader(server, team, null);
+            QuestDepartures.removeReady(teamId, team.leader());
+        }
+    }
+
+    /**
+     * 开局只有发起人能点出发,所以队里有人在线时发起人也得在线:发起人不在线(或者正要下线,leaving 是他)时,
+     * 换成最早加入、还在线的队员,换上来的人不用准备;没人在线就先不换,等下一个上线的人接过来
+     */
+    private static void ensureOnlineLeader(MinecraftServer server, QuestTeams.Team team, @Nullable UUID leaving) {
+        UUID leader = team.leader();
+        if (!leader.equals(leaving) && server.getPlayerList().getPlayer(leader) != null) {
+            return;
+        }
+        UUID next = nextOnlineMember(server, team, leaving);
+        if (next != null && !next.equals(leader)) {
+            team.setLeader(next);
+            QuestDepartures.removeReady(team.id(), next);
         }
     }
 
@@ -303,9 +569,12 @@ public final class QuestService {
                 }
             }
             teams.remove(team.id());
+            QuestDepartures.clear(new QuestDepartures.Group(key, team.id()));
         } else {
             complete(player, quest);
+            QuestDepartures.clear(new QuestDepartures.Group(key, player.getUUID()));
         }
+        changed();
         return SubmitResult.COMPLETED;
     }
 
@@ -321,6 +590,7 @@ public final class QuestService {
         runActions(player, quest, quest.value().actions().submit());
     }
 
+    /** 接、提交、放弃时的动作:挨个跑完,不看返回值 */
     private static void runActions(ServerPlayer player, Holder.Reference<QuestDefinition> quest, List<QuestAction> actions) {
         for (QuestAction action : actions) {
             action.run(player, quest);
@@ -404,8 +674,8 @@ public final class QuestService {
     }
 
     /**
-     * 登录时:补记不在线时队伍完成的任务;清掉找不到任务定义、或者队伍已经不在(不再是成员)的已接任务;
-     * 还在的组队任务从队伍抄最新进度。
+     * 登录时:补记不在线时队伍完成的任务;清掉找不到任务定义、或者队伍已经不在(不再是成员,比如不在线时被移出队伍)的已接任务,
+     * 任务定义还在的照放弃走一遍(放弃事件、abandon 动作);还在的组队任务从队伍抄最新进度,队伍的发起人不在线就由他接过来。
      */
     public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) {
@@ -431,22 +701,30 @@ public final class QuestService {
                 dropped.add(entry.getKey());
             } else if (team != null) {
                 entry.getValue().copyFrom(team, quest.get().value().objectives().size());
+                ensureOnlineLeader(server, team, null);
                 changed = true;
             }
         }
         for (ResourceKey<QuestDefinition> key : dropped) {
+            Optional<Holder.Reference<QuestDefinition>> quest = lookup(player.level(), key);
+            quest.ifPresent(q -> NeoForge.EVENT_BUS.post(new QuestEvent.Abandon(player, q)));
             ActiveQuest removed = data.remove(key);
             if (removed != null && removed.team() != null) {
                 leaveTeam(server, removed.team(), player.getUUID());
             }
+            quest.ifPresent(q -> runActions(player, q, q.value().actions().abandon()));
             changed = true;
         }
         if (changed) {
             PlayerQuests.sync(player);
+            changed();
         }
     }
 
-    /** 下线时:他当发起人的队伍,换成最早加入、还在线的成员;没人在线就先不换 */
+    /**
+     * 下线时:他当发起人的队伍,换成最早加入、还在线的成员(换上来的人不用准备);没人在线就先不换,
+     * 等下一个上线的队员接过来。他从所有准备、出门名单里划掉(人不在线就不算在外面)
+     */
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) {
             return;
@@ -454,15 +732,20 @@ public final class QuestService {
         MinecraftServer server = player.level().getServer();
         for (QuestTeams.Team team : QuestTeams.get(server).all()) {
             if (team.leader().equals(player.getUUID())) {
-                UUID next = nextOnlineMember(server, team, player.getUUID());
-                if (next != null) {
-                    team.setLeader(next);
-                }
+                ensureOnlineLeader(server, team, player.getUUID());
             }
         }
+        QuestDepartures.removePlayer(player.getUUID());
+        changed();
     }
 
-    private static @Nullable UUID nextOnlineMember(MinecraftServer server, QuestTeams.Team team, UUID leaving) {
+    /** 服务器关掉:准备、出门名单都不存档,清空(单人存档退出再进,不带上一局的) */
+    public static void onServerStopped(ServerStoppedEvent event) {
+        QuestDepartures.clearAll();
+    }
+
+    /** 最早加入、还在线的队员(leaving 是正要下线的人,不算) */
+    private static @Nullable UUID nextOnlineMember(MinecraftServer server, QuestTeams.Team team, @Nullable UUID leaving) {
         Set<UUID> online = new HashSet<>();
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             online.add(p.getUUID());

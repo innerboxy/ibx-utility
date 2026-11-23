@@ -56,11 +56,14 @@ public class IbxUtility {
         NeoForge.EVENT_BUS.addListener(ModNetworking::onDatapackSync);
         // 右键原版制箭台打开制箭界面
         NeoForge.EVENT_BUS.addListener(FletchingTableInteraction::onRightClickBlock);
-        // 任务:击杀计数、登录时补记 / 清理、下线时换发起人
+        // 任务:击杀计数、登录时补记 / 清理、下线时换发起人并划出准备 / 出门名单、关服清名单;悬赏板界面每刻结束时按需刷新
         NeoForge.EVENT_BUS.addListener(QuestService::onLivingDeath);
         NeoForge.EVENT_BUS.addListener(QuestService::onLogin);
         NeoForge.EVENT_BUS.addListener(QuestService::onLogout);
+        NeoForge.EVENT_BUS.addListener(QuestService::onServerStopped);
         NeoForge.EVENT_BUS.addListener(QuestNetworking::onLogout);
+        NeoForge.EVENT_BUS.addListener(QuestNetworking::onServerTick);
+        NeoForge.EVENT_BUS.addListener(QuestNetworking::onServerStopped);
 
         // 通用配置:控制是否移除原版木质配方
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);

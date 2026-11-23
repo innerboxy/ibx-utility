@@ -3,6 +3,7 @@ package ibx.utility.client.screen;
 import ibx.utility.IbxUtility;
 import ibx.utility.client.ClientForgeRecipes;
 import ibx.utility.client.CreativeOrder;
+import ibx.utility.client.DataIcons;
 import ibx.utility.client.PinyinSearch;
 import ibx.utility.menu.EquipmentForgeMenu;
 import ibx.utility.network.CraftEquipmentPayload;
@@ -37,6 +38,7 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import org.anti_ad.mc.ipn.api.IPNButton;
 import org.anti_ad.mc.ipn.api.IPNGuiHint;
 import org.anti_ad.mc.ipn.api.IPNPlayerSideOnly;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -245,7 +247,8 @@ public class EquipmentForgeScreen extends AbstractContainerScreen<EquipmentForge
     private static final Component ALL_LABEL = Component.translatable("category.ibx_utility.all");
 
     /** 分类子标签,category 为 null 表示"全部" */
-    private record CategoryTab(Identifier category, ItemStack icon, Component label) {}
+    /** 一个分类标签;definition 是数据定义的分类(图标照它的 icon 画),内置的「全部」没有、画 icon 这个物品 */
+    private record CategoryTab(Identifier category, ItemStack icon, @Nullable EquipmentCategoryDefinition definition, Component label) {}
 
     /** 当前可见的一个标签:tabs 中的下标及其顶边 y(相对 topPos) */
     private record VisibleTab(int index, int y) {}
@@ -338,7 +341,7 @@ public class EquipmentForgeScreen extends AbstractContainerScreen<EquipmentForge
     /** 从数据包注册表构建标签:内置"全部"置顶,其余按 order、再按 id 字母序 */
     private void buildTabs() {
         List<CategoryTab> list = new ArrayList<>();
-        list.add(new CategoryTab(null, new ItemStack(Items.COMPASS), ALL_LABEL));
+        list.add(new CategoryTab(null, new ItemStack(Items.COMPASS), null, ALL_LABEL));
         minecraft.level.registryAccess()
                 .lookup(ModRegistries.EQUIPMENT_CATEGORY)
                 .ifPresent(registry -> registry.entrySet().stream()
@@ -348,7 +351,7 @@ public class EquipmentForgeScreen extends AbstractContainerScreen<EquipmentForge
                                 .thenComparing(e -> e.getKey().identifier().toString()))
                         .forEach(e -> {
                             EquipmentCategoryDefinition def = e.getValue();
-                            list.add(new CategoryTab(e.getKey().identifier(), def.iconStack(), def.name()));
+                            list.add(new CategoryTab(e.getKey().identifier(), ItemStack.EMPTY, def, def.name()));
                         }));
         tabs = List.copyOf(list);
         tabPage = Mth.clamp(tabPage, 0, tabPageCount() - 1);
@@ -667,7 +670,11 @@ public class EquipmentForgeScreen extends AbstractContainerScreen<EquipmentForge
         // 标签左缘是描边 + 1px 高光,右缘只有描边:图标右移 1px 才在高光内侧居中
         int iconX = x + TAB_ICON_INSET + 1 + (active ? 1 : 0);
         int iconY = y + TAB_ICON_INSET;
-        graphics.item(tab.icon(), iconX, iconY);
+        if (tab.definition() != null) {
+            DataIcons.draw(graphics, tab.definition(), iconX, iconY);
+        } else {
+            graphics.item(tab.icon(), iconX, iconY);
+        }
         if (!active) {
             graphics.fill(iconX, iconY, iconX + 16, iconY + 16, OVERLAY_TAB_INACTIVE);
         }

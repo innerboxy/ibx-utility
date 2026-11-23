@@ -118,7 +118,7 @@ The left-hand category tabs are driven by a data-pack registry.
 | --- | --- | --- | --- |
 | `name` | Yes | — | Tab display name, a full Component (usually `{"translate": "..."}`). |
 | `order` | No | `0` | Top-to-bottom order; smaller is higher. Ties break by category id alphabetically. |
-| `icon` | No | `minecraft:book` | Tab icon item id. May point at an item from an optional mod — if that item doesn't exist, it falls back (see below). |
+| `icon` | No | `minecraft:book` | The tab icon. Write an item id, which may point at an item from an optional mod — if that item doesn't exist, it falls back (see below); or the path of an image (a full resource path ending in `.png`, e.g. `"example:textures/forge/melee.png"`, which is `assets/example/textures/forge/melee.png` in a resource pack). The whole image is drawn scaled to 16×16, and the category badge in JEI uses it too; a missing image shows the purple-and-black checkerboard. |
 
 **Icon fallback**: if the item given by `icon` isn't in the registry (e.g. the corresponding mod isn't installed), the tab falls back to a book.
 

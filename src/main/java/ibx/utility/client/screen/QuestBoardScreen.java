@@ -2,6 +2,7 @@ package ibx.utility.client.screen;
 
 import ibx.utility.IbxUtility;
 import ibx.utility.client.ClientQuestBoard;
+import ibx.utility.client.DataIcons;
 import ibx.utility.network.QuestActionPayload;
 import ibx.utility.network.QuestBoardPayload;
 import ibx.utility.quest.QuestCategoryDefinition;
@@ -43,6 +44,8 @@ import java.util.function.IntConsumer;
  * 书是一整张贴图,左页每行底下的账本线和标题下的双线都画在上面,目录的行距要和它对齐;
  * 丝带是一张浅灰贴图(右边用左右镜像的那张),按分页颜色乘色;按钮是蜡封,翻页是金箭头(都在 gui/sprites/quest_board/)。
  * 分页多了左边书签上下翻页(同锻造台的页签);右页内容一页放不下也分页,页码在蜡封按钮上面。
+ * 组队任务的队伍单独占右页的最后一页:接了的是自己的队伍,一人一行、名字前一个方框,要出发的任务里「出发 / 准备」蜡封也在这一页,
+ * 发起人在这一页把人移出队伍(行尾的小叉,点两次);没接的是能加入的队伍,各带一个「加入」蜡封。
  */
 public class QuestBoardScreen extends Screen {
     private static final int BOOK_W = 300;
@@ -112,9 +115,15 @@ public class QuestBoardScreen extends Screen {
 
     private static final Identifier ACCEPTED_TAB = Identifier.fromNamespaceAndPath(IbxUtility.MODID, "accepted");
 
-    /** 蜡封按钮的颜色:接受红、提交绿、放弃棕、加入蓝 */
+    /** 队伍那一页:每个队员一行的高度、名字前方框的边长 */
+    private static final int MEMBER_ROW_H = 11;
+    private static final int MEMBER_BOX = 7;
+    /** 行尾「移出队伍」小叉的边长 */
+    private static final int KICK_CROSS = 5;
+
+    /** 蜡封按钮的颜色:接受红、提交绿、放弃棕、加入蓝、准备金、出发藏青 */
     private enum Wax {
-        RED("red"), GREEN("green"), BROWN("brown"), BLUE("blue");
+        RED("red"), GREEN("green"), BROWN("brown"), BLUE("blue"), GOLD("gold"), NAVY("navy");
 
         final Identifier sprite;
         final Identifier highlighted;
@@ -129,8 +138,8 @@ public class QuestBoardScreen extends Screen {
         return Identifier.fromNamespaceAndPath(IbxUtility.MODID, "quest_board/" + name);
     }
 
-    /** 一条书签;icon 是物品图标,sprite 不为空时画这张贴图(自带的【已承接任务】) */
-    private record Tab(Identifier id, Component name, ItemStack icon, @Nullable Identifier sprite, int color) {}
+    /** 一条书签;category 是数据定义的分页(图标照它的 icon 画),自带的【已承接任务】没有分页、画 sprite 这张贴图 */
+    private record Tab(Identifier id, Component name, @Nullable QuestCategoryDefinition category, @Nullable Identifier sprite, int color) {}
 
     /**
      * 右页的一段内容:高度、是不是小标题、属于哪个小标题底下(小标题自己没有)、怎么画。
@@ -159,6 +168,8 @@ public class QuestBoardScreen extends Screen {
     /** 右页详情翻到第几页;换了任务回到第一页 */
     private int detailPage;
     private final List<Hit> hits = new ArrayList<>();
+    /** 点了一次小叉、等着再点一次确认移出的那个队员;鼠标移开就取消 */
+    private @Nullable UUID kickArmed;
 
     public QuestBoardScreen() {
         super(Component.translatable("block.ibx_utility.quest_board"));
@@ -226,6 +237,13 @@ public class QuestBoardScreen extends Screen {
         return false;
     }
 
+    /** 关界面:告诉服务端不用再发刷新 */
+    @Override
+    public void removed() {
+        super.removed();
+        ClientQuestBoard.closed();
+    }
+
     // ---------------------------------------------------------------- 数据
 
     private HolderLookup.RegistryLookup<QuestDefinition> quests() {
@@ -249,9 +267,9 @@ public class QuestBoardScreen extends Screen {
                 .toList();
         for (int i = 0; i < categories.size(); i++) {
             QuestCategoryDefinition category = categories.get(i).value();
-            result.add(new Tab(categories.get(i).key().identifier(), category.name(), category.iconStack(), null, RIBBONS[i % RIBBONS.length]));
+            result.add(new Tab(categories.get(i).key().identifier(), category.name(), category, null, RIBBONS[i % RIBBONS.length]));
         }
-        result.add(new Tab(ACCEPTED_TAB, Component.translatable("quest.ibx_utility.board.accepted"), ItemStack.EMPTY, ACCEPTED_ICON, RIBBON_ACCEPTED));
+        result.add(new Tab(ACCEPTED_TAB, Component.translatable("quest.ibx_utility.board.accepted"), null, ACCEPTED_ICON, RIBBON_ACCEPTED));
         return result;
     }
 
@@ -283,6 +301,21 @@ public class QuestBoardScreen extends Screen {
 
     private Optional<QuestBoardPayload.TeamInfo> ownTeam(ResourceKey<QuestDefinition> key) {
         return ClientQuestBoard.current().teams().stream().filter(team -> team.mine() && team.quest().equals(key)).findFirst();
+    }
+
+    /** 队伍里的自己 */
+    private Optional<QuestBoardPayload.Member> self(QuestBoardPayload.TeamInfo team) {
+        UUID id = minecraft.player.getUUID();
+        return team.members().stream().filter(member -> member.id().equals(id)).findFirst();
+    }
+
+    /** 这个任务出发了还没回来的人的名字:组队的看队伍,个人的就是自己 */
+    private List<String> awayNames(ResourceKey<QuestDefinition> key) {
+        Optional<QuestBoardPayload.TeamInfo> team = ownTeam(key);
+        if (team.isPresent()) {
+            return team.get().members().stream().filter(QuestBoardPayload.Member::away).map(QuestBoardPayload.Member::name).toList();
+        }
+        return ClientQuestBoard.current().away().contains(key) ? List.of(minecraft.player.getGameProfile().name()) : List.of();
     }
 
     // ---------------------------------------------------------------- 画
@@ -350,8 +383,8 @@ public class QuestBoardScreen extends Screen {
         int ix = right ? edge + out - 19 : x0 + 3;
         if (tab.sprite != null) {
             graphics.blitSprite(RenderPipelines.GUI_TEXTURED, tab.sprite, ix, ty + 2, 16, 16);
-        } else {
-            graphics.item(tab.icon, ix, ty + 2);
+        } else if (tab.category != null) {
+            DataIcons.draw(graphics, tab.category, ix, ty + 2);
         }
         Identifier id = tab.id;
         hits.add(new Hit(x0, ty, out, TAB_SIZE, () -> {
@@ -395,7 +428,7 @@ public class QuestBoardScreen extends Screen {
             ResourceKey<QuestDefinition> key = shown.get(index);
             QuestDefinition quest = definition(key).orElseThrow();
             int ry = py + 22 + r * ROW_H;
-            graphics.item(quest.iconStack(), px + 8, ry + 2);
+            DataIcons.draw(graphics, quest, px + 8, ry + 2);
             graphics.text(font, fit(quest.name().getString(), PAGE_W - 34), px + 27, ry + 2, INK, false);
             Component status = status(key, quest);
             graphics.text(font, fit(status.getString(), PAGE_W - 34), px + 27, ry + 11, statusColor(key, quest), false);
@@ -465,17 +498,19 @@ public class QuestBoardScreen extends Screen {
         ResourceKey<QuestDefinition> key = selectedQuest;
         ActiveQuest active = playerQuests().active(key);
         int buttonY = y + PAGE_H - 23;
-        graphics.item(quest.iconStack(), x, y);
+        DataIcons.draw(graphics, quest, x, y);
         graphics.text(font, fit(quest.name().getString(), w - 20), x + 20, y + 4, INK, false);
         graphics.fill(x, y + 18, x + w, y + 19, RULE);
         graphics.fill(x, y + 20, x + w, y + 21, RULE_LIGHT);
 
         List<Block> blocks = detailBlocks(key, quest, active, x, w);
+        List<Block> teamPage = active != null ? ownTeamBlocks(key, quest, active, x, w)
+                : quest.team().isPresent() ? joinBlocks(key, quest, x, w) : List.of();
         int top = y + 24;
         int room = buttonY - 2 - top;
-        List<List<Block>> pages = paginate(blocks, room);
+        List<List<Block>> pages = paginate(blocks, teamPage, room);
         if (pages.size() > 1) {
-            pages = paginate(blocks, room - PAGER_H);
+            pages = paginate(blocks, teamPage, room - PAGER_H);
         }
         detailPage = Math.min(detailPage, pages.size() - 1);
         int yy = top;
@@ -487,13 +522,13 @@ public class QuestBoardScreen extends Screen {
             drawPager(graphics, x + w / 2, buttonY - PAGER_H, detailPage, pages.size(), mouseX, mouseY, dir -> detailPage += dir);
         }
 
-        // 往前推的(接受、提交)在右边,放弃在左边
+        // 往前推的(接受、提交)在右边,放弃在左边;提交在目标没达成时字是浅的
         if (active != null) {
             sealButton(graphics, Wax.BROWN, Component.translatable("quest.ibx_utility.board.abandon"), x, buttonY, INK, mouseX, mouseY,
                     () -> send(QuestActionPayload.Action.ABANDON, key, null));
             Component submit = Component.translatable("quest.ibx_utility.board.submit");
-            sealButton(graphics, Wax.GREEN, submit, x + w - sealWidth(submit), buttonY, achieved(quest, active) ? INK : INK_LIGHT,
-                    mouseX, mouseY, () -> send(QuestActionPayload.Action.SUBMIT, key, null));
+            sealButton(graphics, Wax.GREEN, submit, x + w - sealWidth(submit), buttonY, achieved(quest, active) ? INK : INK_LIGHT, mouseX, mouseY,
+                    () -> send(QuestActionPayload.Action.SUBMIT, key, null));
         } else if (!joinOnly(key, quest)) {
             Component accept = Component.translatable("quest.ibx_utility.board.accept");
             sealButton(graphics, Wax.RED, accept, x + w - sealWidth(accept), buttonY, INK, mouseX, mouseY,
@@ -501,7 +536,43 @@ public class QuestBoardScreen extends Screen {
         }
     }
 
-    /** 按高度把右页内容分页 */
+    /**
+     * 要出发的任务(actions 里写了 depart)在目标达成前的「出发 / 准备」蜡封,靠右一行:还没人出发时,
+     * 发起人(个人任务就是自己)是「出发」、队员是「准备 / 取消准备」;已经有人在外面时,不在外面的人是「出发」。
+     * 不是要出发的任务、目标已经达成、自己在外面时没有这一行,返回 null
+     */
+    private @Nullable Block departBlock(ResourceKey<QuestDefinition> key, QuestDefinition quest, ActiveQuest active,
+                                        @Nullable Block section, int x, int w) {
+        if (!quest.actions().hasDeparture() || achieved(quest, active)) {
+            return null;
+        }
+        Optional<QuestBoardPayload.TeamInfo> team = ownTeam(key);
+        Optional<QuestBoardPayload.Member> self = team.flatMap(this::self);
+        boolean away = team.isPresent() ? self.map(QuestBoardPayload.Member::away).orElse(false)
+                : ClientQuestBoard.current().away().contains(key);
+        if (away) {
+            return null;
+        }
+        boolean depart = team.isEmpty() || team.get().leading() || team.get().inProgress();
+        boolean ready = self.map(QuestBoardPayload.Member::ready).orElse(false);
+        Component label = Component.translatable(depart ? "quest.ibx_utility.board.depart"
+                : ready ? "quest.ibx_utility.board.cancel_ready" : "quest.ibx_utility.board.get_ready");
+        QuestActionPayload.Action action = depart ? QuestActionPayload.Action.DEPART : QuestActionPayload.Action.READY;
+        return new Block(4 + SEAL + 2, false, section, (graphics, y, mouseX, mouseY) ->
+                sealButton(graphics, depart ? Wax.NAVY : Wax.GOLD, label, x + w - sealWidth(label), y + 4, INK, mouseX, mouseY,
+                        () -> send(action, key, null)));
+    }
+
+    /** 右页的全部页:前面的内容按高度分页,队伍那一页(组队任务才有)另起,排在最后 */
+    private static List<List<Block>> paginate(List<Block> blocks, List<Block> teamPage, int height) {
+        List<List<Block>> pages = paginate(blocks, height);
+        if (!teamPage.isEmpty()) {
+            pages.addAll(paginate(teamPage, height));
+        }
+        return pages;
+    }
+
+    /** 按高度把一串内容分页 */
     private static List<List<Block>> paginate(List<Block> blocks, int height) {
         List<List<Block>> pages = new ArrayList<>();
         List<Block> page = new ArrayList<>();
@@ -525,9 +596,23 @@ public class QuestBoardScreen extends Screen {
         return pages;
     }
 
-    /** 右页名字下面的内容,一段一段排好:简介每行一段,目标每个一段,奖励每排一段,队伍每行一段 */
+    /**
+     * 右页名字下面的内容,一段一段排好:进行中(有人出发了才有)每行一段,简介每行一段,目标每个一段,奖励每排一段;
+     * 要出发的个人任务最后是「出发」蜡封。组队任务的队伍不在这里,另起一页(接了的 ownTeamBlocks、没接的 joinBlocks)
+     */
     private List<Block> detailBlocks(ResourceKey<QuestDefinition> key, QuestDefinition quest, @Nullable ActiveQuest active, int x, int w) {
         List<Block> blocks = new ArrayList<>();
+        List<String> away = active == null ? List.of() : awayNames(key);
+        if (!away.isEmpty()) {
+            Block progressHeading = heading(Component.translatable("quest.ibx_utility.board.in_progress"), x, 0);
+            blocks.add(progressHeading);
+            List<FormattedCharSequence> lines = font.split(Component.literal(String.join("、", away)), w);
+            for (int i = 0; i < lines.size(); i++) {
+                FormattedCharSequence line = lines.get(i);
+                blocks.add(new Block(i == lines.size() - 1 ? 14 : 10, false, progressHeading,
+                        (graphics, y, mouseX, mouseY) -> graphics.text(font, line, x, y, INK_LIGHT, false)));
+            }
+        }
         quest.description().ifPresent(description -> {
             Block descriptionHeading = heading(Component.translatable("quest.ibx_utility.board.description"), x, 0);
             blocks.add(descriptionHeading);
@@ -580,8 +665,11 @@ public class QuestBoardScreen extends Screen {
             }
         }
 
-        if (quest.team().isPresent()) {
-            teamBlocks(blocks, key, quest, x, w);
+        if (quest.team().isEmpty() && active != null) {
+            Block depart = departBlock(key, quest, active, null, x, w);
+            if (depart != null) {
+                blocks.add(depart);
+            }
         }
         return blocks;
     }
@@ -602,21 +690,105 @@ public class QuestBoardScreen extends Screen {
         graphics.text(font, text, x + 1, y, TAG_TEXT, false);
     }
 
-    /** 队伍:自己的队伍列出成员;没接的列出能加入的队伍,各带一个「加入」蜡封 */
-    private void teamBlocks(List<Block> blocks, ResourceKey<QuestDefinition> key, QuestDefinition quest, int x, int w) {
-        int max = quest.team().get().max();
+    /**
+     * 自己的队伍,单独一页:一人一行,名字前一个方框——发起人的填实,点了准备的打勾;出发了还没回来的行尾写「进行中」。
+     * 自己是发起人时,别的队员行尾有个小叉(在外面的排在「进行中」右边):点一下变成红字的「确认移除?」,再点一次才移出队伍,鼠标移开就取消。
+     * 要出发的任务最后是「出发 / 准备」蜡封。没有自己的队伍时是空的
+     */
+    private List<Block> ownTeamBlocks(ResourceKey<QuestDefinition> key, QuestDefinition quest, ActiveQuest active, int x, int w) {
         Optional<QuestBoardPayload.TeamInfo> own = ownTeam(key);
-        if (own.isPresent()) {
-            Block teamHeading = heading(Component.translatable("quest.ibx_utility.board.team", own.get().members().size(), max), x, 0);
-            blocks.add(teamHeading);
-            for (FormattedCharSequence line : font.split(Component.literal(String.join("、", own.get().members())), w)) {
-                blocks.add(new Block(10, false, teamHeading, (graphics, y, mouseX, mouseY) -> graphics.text(font, line, x, y, INK_LIGHT, false)));
+        if (own.isEmpty()) {
+            return List.of();
+        }
+        QuestBoardPayload.TeamInfo team = own.get();
+        List<Block> blocks = new ArrayList<>();
+        Block teamHeading = heading(Component.translatable("quest.ibx_utility.board.team", team.members().size(), team.max()), x, 0);
+        blocks.add(teamHeading);
+        Component awayMark = Component.translatable("quest.ibx_utility.board.in_progress");
+        Component kickConfirm = Component.translatable("quest.ibx_utility.board.kick_confirm");
+        UUID self = minecraft.player.getUUID();
+        for (QuestBoardPayload.Member member : team.members()) {
+            boolean kickable = team.leading() && !member.id().equals(self);
+            blocks.add(new Block(MEMBER_ROW_H, false, teamHeading, (graphics, y, mouseX, mouseY) -> {
+                drawMemberBox(graphics, x, y, member.leader(), member.ready());
+                boolean armed = kickable && member.id().equals(kickArmed);
+                // 行尾从右往左:小叉(点过一次换成「确认移除?」,这时不写「进行中」),再是「进行中」
+                int cross = kickable ? KICK_CROSS + 5 : 0;
+                boolean showAway = member.away() && !armed;
+                int tail = armed ? font.width(kickConfirm) + 4 : cross + (showAway ? font.width(awayMark) + 4 : 0);
+                graphics.text(font, fit(member.name(), w - MEMBER_BOX - 4 - tail), x + MEMBER_BOX + 4, y, INK, false);
+                if (showAway) {
+                    graphics.text(font, awayMark, x + w - cross - font.width(awayMark), y, INK_LIGHT, false);
+                }
+                if (kickable) {
+                    drawKick(graphics, key, member.id(), kickConfirm, armed, x + w, y, mouseX, mouseY);
+                }
+            }));
+        }
+        Block depart = departBlock(key, quest, active, teamHeading, x, w);
+        if (depart != null) {
+            blocks.add(depart);
+        }
+        return blocks;
+    }
+
+    /**
+     * 行尾的「移出队伍」,右边对齐 right:平时是个小叉(指上去变红);点过一次(armed)换成红字的「确认移除?」,
+     * 再点才发给服务端,鼠标一离开这几个字就取消
+     */
+    private void drawKick(GuiGraphicsExtractor graphics, ResourceKey<QuestDefinition> key, UUID member, Component confirm, boolean armed,
+                          int right, int y, int mouseX, int mouseY) {
+        if (armed) {
+            int tw = font.width(confirm);
+            if (mouseX < right - tw - 1 || mouseX >= right + 1 || mouseY < y - 1 || mouseY >= y + 9) {
+                kickArmed = null;
+                return;
             }
+            graphics.text(font, confirm, right - tw, y, RED, false);
+            hits.add(new Hit(right - tw - 1, y - 1, tw + 2, 10, () -> {
+                kickArmed = null;
+                send(QuestActionPayload.Action.KICK, key, member);
+            }));
             return;
         }
-        if (playerQuests().isActive(key)) {
-            return;
+        int cx = right - KICK_CROSS - 1;
+        int cy = y + 1;
+        boolean hover = mouseX >= cx - 2 && mouseX < right + 1 && mouseY >= y - 1 && mouseY < y + 9;
+        int color = hover ? RED : INK_LIGHT;
+        for (int i = 0; i < KICK_CROSS; i++) {
+            graphics.fill(cx + i, cy + i, cx + i + 1, cy + i + 1, color);
+            graphics.fill(cx + KICK_CROSS - 1 - i, cy + i, cx + KICK_CROSS - i, cy + i + 1, color);
         }
+        hits.add(new Hit(cx - 2, y - 1, KICK_CROSS + 4, 10, () -> {
+            kickArmed = member;
+            play(SoundEvents.UI_BUTTON_CLICK.value());
+        }));
+        if (hover) {
+            graphics.setTooltipForNextFrame(font, Component.translatable("quest.ibx_utility.board.kick"), mouseX, mouseY);
+        }
+    }
+
+    /** 队员名字前的方框:发起人的填实(金),点了准备的打一个绿勾(勾尖伸出框的右上角) */
+    private void drawMemberBox(GuiGraphicsExtractor graphics, int x, int y, boolean leader, boolean ready) {
+        int s = MEMBER_BOX;
+        graphics.fill(x, y, x + s, y + 1, INK_LIGHT);
+        graphics.fill(x, y + s - 1, x + s, y + s, INK_LIGHT);
+        graphics.fill(x, y, x + 1, y + s, INK_LIGHT);
+        graphics.fill(x + s - 1, y, x + s, y + s, INK_LIGHT);
+        if (leader) {
+            graphics.fill(x + 2, y + 2, x + s - 2, y + s - 2, GOLD);
+        } else if (ready) {
+            int[][] tick = {{1, 3}, {2, 4}, {3, 5}, {4, 4}, {5, 3}, {6, 2}, {7, 1}};
+            for (int[] dot : tick) {
+                graphics.fill(x + dot[0], y + dot[1] - 1, x + dot[0] + 1, y + dot[1] + 1, GREEN);
+            }
+        }
+    }
+
+    /** 没接的组队任务,单独一页:列出能加入的队伍,各带一个「加入」蜡封;一支都没有时写一行提示 */
+    private List<Block> joinBlocks(ResourceKey<QuestDefinition> key, QuestDefinition quest, int x, int w) {
+        int max = quest.team().get().max();
+        List<Block> blocks = new ArrayList<>();
         Block joinHeading = heading(Component.translatable("quest.ibx_utility.board.team_join"), x, 0);
         blocks.add(joinHeading);
         List<QuestBoardPayload.TeamInfo> joinable = ClientQuestBoard.current().teams().stream()
@@ -624,11 +796,11 @@ public class QuestBoardScreen extends Screen {
         if (joinable.isEmpty()) {
             blocks.add(new Block(10, false, joinHeading, (graphics, y, mouseX, mouseY) -> graphics.text(font,
                     fit(Component.translatable("quest.ibx_utility.board.no_teams").getString(), w), x, y, FADED, false)));
-            return;
+            return blocks;
         }
         Component join = Component.translatable("quest.ibx_utility.board.join");
         for (QuestBoardPayload.TeamInfo team : joinable) {
-            String label = Component.translatable("quest.ibx_utility.board.team_of", team.leader(), team.members().size(), max).getString();
+            String label = Component.translatable("quest.ibx_utility.board.team_of", team.members().size(), max, team.leader()).getString();
             UUID id = team.id();
             blocks.add(new Block(TEAM_ROW_H, false, joinHeading, (graphics, y, mouseX, mouseY) -> {
                 graphics.text(font, fit(label, w - sealWidth(join) - 4), x, y + 3, INK_LIGHT, false);
@@ -636,6 +808,7 @@ public class QuestBoardScreen extends Screen {
                         () -> send(QuestActionPayload.Action.JOIN, key, id));
             }));
         }
+        return blocks;
     }
 
     // ---------------------------------------------------------------- 小件
@@ -673,8 +846,8 @@ public class QuestBoardScreen extends Screen {
         return font.plainSubstrByWidth(text, Math.max(0, width - font.width("…"))) + "…";
     }
 
-    private void send(QuestActionPayload.Action action, ResourceKey<QuestDefinition> quest, @Nullable UUID team) {
-        ClientQuestBoard.send(new QuestActionPayload(action, quest, Optional.ofNullable(team)));
+    private void send(QuestActionPayload.Action action, ResourceKey<QuestDefinition> quest, @Nullable UUID target) {
+        ClientQuestBoard.send(new QuestActionPayload(action, quest, Optional.ofNullable(target)));
         play(SoundEvents.UI_BUTTON_CLICK.value());
     }
 

@@ -95,7 +95,7 @@ public final class QuestTracker {
         int[] shown = progress(player, objectives, active);
         int x = MARGIN;
         if (withQuest) {
-            graphics.item(quest.iconStack(), x, y);
+            DataIcons.draw(graphics, quest, x, y);
             x += 17;
             graphics.text(font, ":", x, y + 4, TEXT, true);
             x += font.width(":") + 3;

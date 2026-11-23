@@ -19,13 +19,14 @@ import net.minecraft.world.item.Items;
  * {
  *   "name": { "translate": "category.example.hunting" },
  *   "order": 0,                          // 可选,默认 0
- *   "icon": "minecraft:iron_sword"       // 可选,默认 minecraft:book
+ *   "icon": "minecraft:iron_sword"       // 可选,默认 minecraft:book;也可以写图片路径 "example:textures/quest/hunting.png"
  * }
  * </pre>
  *
  * @param name  书签的显示名
  * @param order 书签从上到下的顺序,越小越靠上;相同则按分页 id 字母序。可选,默认 0
- * @param icon  书签上的图标物品 id。可选,默认书本;物品不存在时同样回退为书本
+ * @param icon  书签上的图标:物品 id,或者以 .png 结尾的图片路径(资源包里的完整路径,画的时候整张缩到 16×16)。
+ *              可选,默认书本;物品不存在时同样回退为书本
  */
 public record QuestCategoryDefinition(Component name, int order, Identifier icon) {
     /** 未指定 icon 或其物品不存在时的图标 */
@@ -37,7 +38,12 @@ public record QuestCategoryDefinition(Component name, int order, Identifier icon
             Identifier.CODEC.optionalFieldOf("icon", DEFAULT_ICON).forGetter(QuestCategoryDefinition::icon)
     ).apply(instance, QuestCategoryDefinition::new));
 
-    /** 书签图标;icon 物品不存在(如未装对应模组)时回退为书 */
+    /** icon 写的是图片路径(以 .png 结尾)而不是物品 id;客户端画图标走 DataIcons */
+    public boolean hasTextureIcon() {
+        return icon.getPath().endsWith(".png");
+    }
+
+    /** 书签图标物品;icon 物品不存在(如未装对应模组)、或者写的是图片路径时回退为书 */
     public ItemStack iconStack() {
         Item item = BuiltInRegistries.ITEM.getOptional(icon)
                 .filter(i -> i != Items.AIR)

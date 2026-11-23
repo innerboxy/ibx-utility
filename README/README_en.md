@@ -28,7 +28,7 @@ See the [Loot Bag tutorial](../TUTORIAL/LOOT_BAG_en.md).
 
 ### Quest Board
 
-The **Quest Board** (`ibx_utility:quest_board`) is a 2-wide, 2-tall wooden board. Right-click it to open a ledger-style quest screen; quests are accepted and handed in here. Quests are defined entirely by data packs: three objective types (submit items, kill mobs, collect items), fixed quests + daily random, and teams; other mods can also register new objective, reward and requirement types.
+The **Quest Board** (`ibx_utility:quest_board`) is a 2-wide, 2-tall wooden board. Right-click it to open a ledger-style quest screen; quests are accepted and handed in here. Quests are defined entirely by data packs: three objective types (submit items, kill mobs, collect items), fixed quests + daily random, and teams, where members get ready and the leader departs with them (where they go is up to other mods); other mods can also register new objective, reward, requirement and quest-action types.
 
 See the [Quest Board tutorial](../TUTORIAL/QUEST_BOARD_en.md).
 

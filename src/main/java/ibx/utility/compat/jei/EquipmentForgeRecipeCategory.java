@@ -1,5 +1,6 @@
 package ibx.utility.compat.jei;
 
+import ibx.utility.client.DataIcons;
 import ibx.utility.recipe.EquipmentCategoryDefinition;
 import ibx.utility.recipe.EquipmentForgeRecipe;
 import ibx.utility.registry.ModBlocks;
@@ -99,13 +100,13 @@ public class EquipmentForgeRecipeCategory extends AbstractRecipeCategory<RecipeH
     public void draw(RecipeHolder<EquipmentForgeRecipe> holder, IRecipeSlotsView recipeSlotsView,
                      GuiGraphicsExtractor graphics, double mouseX, double mouseY) {
         // 右上角的分类角标:只是绘制的图标,不是 JEI 槽位(无悬停提示/高亮)
-        ItemStack icon = categoryIcon(holder);
-        if (icon.isEmpty()) return;
+        Optional<EquipmentCategoryDefinition> category = categoryDef(holder);
+        if (category.isEmpty()) return;
         var pose = graphics.pose();
         pose.pushMatrix();
         pose.translate(CAT_ICON_X, CAT_ICON_Y);
         pose.scale(CAT_ICON_SCALE, CAT_ICON_SCALE);
-        graphics.item(icon, 0, 0);
+        DataIcons.draw(graphics, category.get(), 0, 0);
         pose.popMatrix();
     }
 
@@ -119,13 +120,6 @@ public class EquipmentForgeRecipeCategory extends AbstractRecipeCategory<RecipeH
         }
         categoryDef(holder).ifPresent(def -> tooltip.add(
                 Component.translatable("jei.ibx_utility.category", def.name())));
-    }
-
-    /** 配方所属分类的图标;分类未在数据包注册表中定义时为空 */
-    private static ItemStack categoryIcon(RecipeHolder<EquipmentForgeRecipe> holder) {
-        return categoryDef(holder)
-                .map(EquipmentCategoryDefinition::iconStack)
-                .orElse(ItemStack.EMPTY);
     }
 
     /** 配方所属分类的定义;分类未在数据包注册表中定义时为空 */

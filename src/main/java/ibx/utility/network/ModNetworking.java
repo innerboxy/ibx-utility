@@ -17,8 +17,9 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 public class ModNetworking {
 
+    /** 网络协议号:服务端和客户端不一样就进不了服(提示模组版本不匹配);网络包的格式变了就加一 */
     public static void register(final RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("1");
+        PayloadRegistrar registrar = event.registrar("2");
         registrar.playToServer(CraftEquipmentPayload.TYPE, CraftEquipmentPayload.STREAM_CODEC, ModNetworking::handleCraft);
         registrar.playToClient(NetItemsPayload.TYPE, NetItemsPayload.STREAM_CODEC, ModNetworking::handleNetItems);
         registrar.playToClient(LootBagSyncPayload.TYPE, LootBagSyncPayload.STREAM_CODEC, ModNetworking::handleLootBagSync);

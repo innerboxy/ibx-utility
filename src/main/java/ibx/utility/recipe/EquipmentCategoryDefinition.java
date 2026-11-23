@@ -19,14 +19,14 @@ import net.minecraft.world.item.Items;
  * {
  *   "name": { "translate": "category.ibx_utility.melee" },
  *   "order": 0,                          // 可选,默认 0
- *   "icon": "minecraft:iron_sword"       // 可选,默认 minecraft:book
+ *   "icon": "minecraft:iron_sword"       // 可选,默认 minecraft:book;也可以写图片路径 "example:textures/forge/melee.png"
  * }
  * </pre>
  *
  * @param name  左侧标签的显示名(完整 Component,通常用 translate)
  * @param order 从上到下的顺序,越小越靠上;相同则按分类 id 字母序。可选,默认 0
- * @param icon  标签图标物品 id(可指向可选模组的物品)。可选,默认书本;
- *              若指定的物品不存在,同样回退为书本
+ * @param icon  标签图标:物品 id(可指向可选模组的物品),或者以 .png 结尾的图片路径(资源包里的完整路径,画的时候整张缩到 16×16)。
+ *              可选,默认书本;若指定的物品不存在,同样回退为书本
  */
 public record EquipmentCategoryDefinition(Component name, int order, Identifier icon) {
     /** 未指定 icon 或其物品不存在时的图标 */
@@ -38,7 +38,12 @@ public record EquipmentCategoryDefinition(Component name, int order, Identifier 
             Identifier.CODEC.optionalFieldOf("icon", DEFAULT_ICON).forGetter(EquipmentCategoryDefinition::icon)
     ).apply(instance, EquipmentCategoryDefinition::new));
 
-    /** 展示用图标(锻造界面标签与 JEI 分类角标共用);icon 物品不存在(如未装对应模组)时回退为默认图标 */
+    /** icon 写的是图片路径(以 .png 结尾)而不是物品 id;客户端画图标走 DataIcons */
+    public boolean hasTextureIcon() {
+        return icon.getPath().endsWith(".png");
+    }
+
+    /** 图标物品(锻造界面标签与 JEI 分类角标共用);icon 物品不存在(如未装对应模组)、或者写的是图片路径时回退为默认图标 */
     public ItemStack iconStack() {
         Item item = BuiltInRegistries.ITEM.getOptional(icon)
                 .filter(i -> i != Items.AIR)

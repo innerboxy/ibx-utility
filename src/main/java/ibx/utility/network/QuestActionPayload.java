@@ -17,16 +17,22 @@ import java.util.UUID;
 /**
  * 客户端 -> 服务端:在悬赏板界面里点的操作。服务端先确认人还在悬赏板旁边,再走 QuestService。
  *
- * @param team 只有加入队伍时用
+ * @param target 加入队伍时是队伍 id,移出队伍时是被移出的人;别的操作不用
  */
-public record QuestActionPayload(Action action, ResourceKey<QuestDefinition> quest, Optional<UUID> team) implements CustomPacketPayload {
+public record QuestActionPayload(Action action, ResourceKey<QuestDefinition> quest, Optional<UUID> target) implements CustomPacketPayload {
     public static final Type<QuestActionPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath(IbxUtility.MODID, "quest_action"));
 
     public enum Action {
         ACCEPT,
         JOIN,
         SUBMIT,
-        ABANDON;
+        ABANDON,
+        /** 准备 / 取消准备(要出发的组队任务,发起人以外的队员) */
+        READY,
+        /** 出发 */
+        DEPART,
+        /** 发起人把一个队员移出队伍 */
+        KICK;
 
         static final StreamCodec<RegistryFriendlyByteBuf, Action> STREAM_CODEC =
                 ByteBufCodecs.VAR_INT.map(i -> values()[i], Action::ordinal).cast();
@@ -35,7 +41,7 @@ public record QuestActionPayload(Action action, ResourceKey<QuestDefinition> que
     public static final StreamCodec<RegistryFriendlyByteBuf, QuestActionPayload> STREAM_CODEC = StreamCodec.composite(
             Action.STREAM_CODEC, QuestActionPayload::action,
             ResourceKey.streamCodec(ModRegistries.QUEST), QuestActionPayload::quest,
-            UUIDUtil.STREAM_CODEC.apply(ByteBufCodecs::optional), QuestActionPayload::team,
+            UUIDUtil.STREAM_CODEC.apply(ByteBufCodecs::optional), QuestActionPayload::target,
             QuestActionPayload::new);
 
     @Override
